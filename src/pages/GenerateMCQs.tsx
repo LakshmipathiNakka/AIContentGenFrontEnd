@@ -3,49 +3,101 @@ import { useState } from 'react';
 import QuestionForm from '@/components/QuestionForm';
 import GenerationProgress from '@/components/GenerationProgress';
 import QuestionCard from '@/components/QuestionCard';
+import { FileText, Download, Edit, Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+
+// Mock AI-generated questions (in real app would come from API)
+const mockGeneratedQuestions = [
+  {
+    questionId: "q123456",
+    questionText: "What will be the output of the following Python code?\n\n```python\nprint(abs(-5))\n```",
+    options: [
+      { text: "-5", isCorrect: false },
+      { text: "5", isCorrect: true },
+      { text: "Error", isCorrect: false },
+      { text: "None", isCorrect: false }
+    ],
+    explanation: "The abs() function in Python returns the absolute value of a number. The absolute value of -5 is 5.",
+    difficulty: "easy",
+    language: "Python",
+    code_data: "print(abs(-5))"
+  },
+  {
+    questionId: "q123457",
+    questionText: "What is the result of the following Python expression?\n\n```python\nabs(-3.14)\n```",
+    options: [
+      { text: "-3.14", isCorrect: false },
+      { text: "3", isCorrect: false },
+      { text: "3.14", isCorrect: true },
+      { text: "3.0", isCorrect: false }
+    ],
+    explanation: "The abs() function works with both integers and floating-point numbers. When given -3.14, it returns the absolute value 3.14.",
+    difficulty: "easy",
+    language: "Python",
+    code_data: "abs(-3.14)"
+  },
+  {
+    questionId: "q123458",
+    questionText: "Consider this Python code. What will it display?\n\n```python\ncomplex_num = 3 + 4j\nprint(abs(complex_num))\n```",
+    options: [
+      { text: "3 + 4j", isCorrect: false },
+      { text: "7", isCorrect: false },
+      { text: "5", isCorrect: true },
+      { text: "Error", isCorrect: false }
+    ],
+    explanation: "For a complex number, the abs() function returns the magnitude (or modulus) which is calculated as sqrt(real² + imag²). For 3+4j, it's sqrt(3² + 4²) = sqrt(9 + 16) = sqrt(25) = 5.",
+    difficulty: "medium",
+    language: "Python",
+    code_data: "complex_num = 3 + 4j\nprint(abs(complex_num))"
+  }
+];
 
 const GenerateMCQs = () => {
+  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
+  const [questions, setQuestions] = useState<any[]>([]);
   
   const handleStartGeneration = () => {
     setIsGenerating(true);
+    setQuestions([]);
     
     // Simulate generation process
     setTimeout(() => {
       setGenerationComplete(true);
-    }, 10000); // 10 seconds to complete all steps
+      setQuestions(mockGeneratedQuestions);
+      
+      toast({
+        title: "Questions Generated Successfully",
+        description: `${mockGeneratedQuestions.length} questions have been created.`,
+      });
+    }, 5000); // 5 seconds to complete all steps
   };
-  
-  // Sample generated questions for preview
-  const generatedQuestions = [
-    {
-      questionId: "q123456",
-      questionText: "What is the output of the following JavaScript code?\n\n```javascript\nlet x = 5;\nlet y = '5';\nconsole.log(x + y);\n```",
-      options: [
-        { text: "10", isCorrect: false },
-        { text: "'55'", isCorrect: true },
-        { text: "Error", isCorrect: false },
-        { text: "undefined", isCorrect: false }
-      ],
-      explanation: "In JavaScript, when you add a number and a string using the + operator, the number is converted to a string and the strings are concatenated. So 5 + '5' becomes '5' + '5' which equals '55'.",
-      difficulty: "medium",
-      language: "JavaScript"
-    },
-    {
-      questionId: "q123457",
-      questionText: "Which of the following correctly describes JavaScript Promises?",
-      options: [
-        { text: "A built-in function to log messages to the console", isCorrect: false },
-        { text: "An object representing the eventual completion or failure of an asynchronous operation", isCorrect: true },
-        { text: "A method to convert JSON to string", isCorrect: false },
-        { text: "A way to define variables with block scope", isCorrect: false }
-      ],
-      explanation: "A Promise is an object representing the eventual completion or failure of an asynchronous operation. Promises provide a cleaner way to handle asynchronous operations compared to callbacks.",
-      difficulty: "hard",
-      language: "JavaScript"
-    }
-  ];
+
+  const handleEditQuestion = (id: string) => {
+    toast({
+      title: "Edit Question",
+      description: `Editing question ${id}`,
+    });
+    // In a real app, you would open a modal or navigate to an edit page
+  };
+
+  const handleDeleteQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.questionId !== id));
+    toast({
+      title: "Question Deleted",
+      description: `Question ${id} has been removed`,
+    });
+  };
+
+  const handleDownloadSheet = () => {
+    toast({
+      title: "Downloading Google Sheet",
+      description: "Your questions are being exported to Google Sheet format",
+    });
+    // In a real app, this would trigger an actual download
+  };
   
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -56,24 +108,30 @@ const GenerateMCQs = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <QuestionForm />
+          <QuestionForm onGenerateStart={handleStartGeneration} />
           
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h2>
+            
             <div className="space-y-3">
-              <button 
+              <Button 
                 onClick={handleStartGeneration}
                 disabled={isGenerating}
-                className="w-full py-2 px-4 border rounded-md shadow-sm text-sm font-medium text-white bg-mcq-primary hover:bg-mcq-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary disabled:opacity-70"
+                className="w-full"
               >
                 Generate Sample Questions
-              </button>
-              <button className="w-full py-2 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary">
-                Import Question Data
-              </button>
-              <button className="w-full py-2 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary">
-                Browse Templates
-              </button>
+              </Button>
+              
+              {generationComplete && (
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center" 
+                  onClick={handleDownloadSheet}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download as Google Sheet
+                </Button>
+              )}
             </div>
             
             <div className="mt-6">
@@ -90,24 +148,47 @@ const GenerateMCQs = () => {
         <div className="lg:col-span-3">
           {generationComplete ? (
             <div>
-              <h2 className="text-lg font-semibold text-slate-800 mb-6">Generated Questions</h2>
-              <div className="space-y-6">
-                {generatedQuestions.map((question) => (
-                  <QuestionCard
-                    key={question.questionId}
-                    questionId={question.questionId}
-                    questionText={question.questionText}
-                    options={question.options}
-                    explanation={question.explanation}
-                    difficulty={question.difficulty}
-                    language={question.language}
-                  />
-                ))}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-slate-800">Generated Questions</h2>
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" onClick={handleDownloadSheet}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </div>
               </div>
-              <div className="mt-6 flex justify-center">
-                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mcq-primary hover:bg-mcq-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary">
-                  Load More Questions
-                </button>
+              
+              <div className="space-y-6">
+                {questions.map((question) => (
+                  <div key={question.questionId} className="relative">
+                    <QuestionCard
+                      questionId={question.questionId}
+                      questionText={question.questionText}
+                      options={question.options}
+                      explanation={question.explanation}
+                      difficulty={question.difficulty}
+                      language={question.language}
+                    />
+                    <div className="absolute top-4 right-4 flex space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleEditQuestion(question.questionId)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleDeleteQuestion(question.questionId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -123,26 +204,26 @@ const GenerateMCQs = () => {
               <div className="mt-8 p-6 bg-slate-50 rounded-lg border border-slate-100 w-full max-w-lg">
                 <h3 className="text-base font-medium text-slate-700 mb-3">Sample Question Preview</h3>
                 <div className="bg-white p-4 rounded border border-slate-200">
-                  <p className="text-sm text-slate-800">What is the output of the following JavaScript code?</p>
+                  <p className="text-sm text-slate-800">What is the output of the following Python code?</p>
                   <div className="mt-2 bg-slate-50 p-2 rounded font-mono text-xs">
-                    console.log(typeof null);
+                    print(abs(-42))
                   </div>
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center">
                       <div className="h-4 w-4 rounded-full border border-slate-300 mr-2"></div>
-                      <span className="text-xs text-slate-700">A) "null"</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="h-4 w-4 rounded-full border border-slate-300 mr-2"></div>
-                      <span className="text-xs text-slate-700">B) "undefined"</span>
+                      <span className="text-xs text-slate-700">A) -42</span>
                     </div>
                     <div className="flex items-center">
                       <div className="h-4 w-4 rounded-full border border-mcq-primary bg-mcq-light mr-2"></div>
-                      <span className="text-xs font-medium text-mcq-primary">C) "object"</span>
+                      <span className="text-xs font-medium text-mcq-primary">B) 42</span>
                     </div>
                     <div className="flex items-center">
                       <div className="h-4 w-4 rounded-full border border-slate-300 mr-2"></div>
-                      <span className="text-xs text-slate-700">D) "string"</span>
+                      <span className="text-xs text-slate-700">C) Error</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-4 w-4 rounded-full border border-slate-300 mr-2"></div>
+                      <span className="text-xs text-slate-700">D) None</span>
                     </div>
                   </div>
                 </div>

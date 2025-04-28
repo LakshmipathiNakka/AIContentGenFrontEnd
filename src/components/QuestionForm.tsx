@@ -2,34 +2,67 @@
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { FileCode, Code2, GraduationCap } from 'lucide-react';
+import DynamicInputs from './DynamicInputs';
+import AnimatedTextarea from './AnimatedTextarea';
+import { Button } from "@/components/ui/button";
 
-const QuestionForm = () => {
+interface InputData {
+  subject: string;
+  no_of_questions: number;
+  topic: string;
+  difficulty_level_tag: string;
+  topic_tag: string;
+  sub_topic_tag: string;
+}
+
+const QuestionForm = ({ onGenerateStart }: { onGenerateStart?: () => void }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [subject, setSubject] = useState('');
-  const [topic, setTopic] = useState('');
-  const [numberOfQuestions, setNumberOfQuestions] = useState(5);
-  const [difficulty, setDifficulty] = useState('medium');
+  const [inputs, setInputs] = useState<InputData[]>([
+    {
+      subject: "Python",
+      no_of_questions: 6,
+      topic: "abs in Built-in Functions",
+      difficulty_level_tag: "Easy",
+      topic_tag: "PYTHON_CODING_ANALYSIS",
+      sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
+    }
+  ]);
+  
+  const [promptText, setPromptText] = useState('');
+  
+  // Generate a prompt based on the inputs
+  const generatePrompt = () => {
+    const prompt = `Create ${inputs.reduce((sum, input) => sum + input.no_of_questions, 0)} multiple choice questions about ${inputs.map(input => 
+      `${input.topic} in ${input.subject} (Difficulty: ${input.difficulty_level_tag}, ${input.no_of_questions} questions)`
+    ).join(', ')}. Include code examples where appropriate.`;
+    
+    setPromptText(prompt);
+    return prompt;
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Generate final prompt if not already done
+    if (!promptText) {
+      generatePrompt();
+    }
     
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       
       toast({
-        title: "Questions Generated",
-        description: `${numberOfQuestions} ${subject} questions on ${topic} have been generated.`,
+        title: "Questions Generation Started",
+        description: `Generating questions based on your criteria. Please wait.`,
       });
       
-      // Reset form
-      setSubject('');
-      setTopic('');
-      setNumberOfQuestions(5);
-      setDifficulty('medium');
-    }, 2000);
+      if (onGenerateStart) {
+        onGenerateStart();
+      }
+    }, 1000);
   };
   
   return (
@@ -42,86 +75,35 @@ const QuestionForm = () => {
       </div>
       
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div>
-            <label htmlFor="subject" className="block text-sm font-medium text-slate-700">
-              Subject
-            </label>
-            <div className="mt-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Code2 className="h-5 w-5 text-slate-400" />
-              </div>
-              <select
-                id="subject"
-                name="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="pl-10 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
-                required
-              >
-                <option value="" disabled>Select subject</option>
-                <option value="javascript">JavaScript</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
-                <option value="csharp">C#</option>
-                <option value="cpp">C++</option>
-              </select>
-            </div>
-          </div>
+        <div className="mb-6">
+          <h3 className="text-md font-medium text-slate-700 mb-4">
+            Question Parameters
+          </h3>
           
-          <div>
-            <label htmlFor="topic" className="block text-sm font-medium text-slate-700">
-              Topic
-            </label>
-            <div className="mt-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <GraduationCap className="h-5 w-5 text-slate-400" />
-              </div>
-              <input
-                type="text"
-                id="topic"
-                name="topic"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. Promises, Async/Await"
-                className="pl-10 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label htmlFor="number" className="block text-sm font-medium text-slate-700">
-              Number of Questions
-            </label>
-            <input
-              type="number"
-              id="number"
-              name="number"
-              min="1"
-              max="20"
-              value={numberOfQuestions}
-              onChange={(e) => setNumberOfQuestions(parseInt(e.target.value))}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="difficulty" className="block text-sm font-medium text-slate-700">
-              Difficulty Level
-            </label>
-            <select
-              id="difficulty"
-              name="difficulty"
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-              className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
+          <DynamicInputs 
+            inputs={inputs}
+            setInputs={setInputs}
+          />
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-md font-medium text-slate-700">Complete Prompt</h3>
+            <Button
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={generatePrompt}
             >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
+              Generate Prompt
+            </Button>
           </div>
+          
+          <AnimatedTextarea 
+            text={promptText}
+            onChange={setPromptText}
+            className="font-mono text-sm"
+          />
         </div>
         
         <div className="mt-8">
