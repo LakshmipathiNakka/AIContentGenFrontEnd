@@ -6,6 +6,7 @@ import QuestionCard from '@/components/QuestionCard';
 import { FileText, Download, Edit, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from 'uuid';
 
 // Mock AI-generated questions (in real app would come from API)
 const mockGeneratedQuestions = [
@@ -58,6 +59,7 @@ const GenerateMCQs = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [questionType, setQuestionType] = useState('General MCQs');
   
   const handleStartGeneration = () => {
     setIsGenerating(true);
@@ -92,23 +94,91 @@ const GenerateMCQs = () => {
   };
 
   const handleDownloadSheet = () => {
-    toast({
-      title: "Downloading Google Sheet",
-      description: "Your questions are being exported to Google Sheet format",
+    // Create Google Sheet structure with required headers
+    const headers = [
+      "question_id", "question_type", "short_text", "question_text", 
+      "question_key", "content_type", "multimedia_count", "multimedia_format", 
+      "multimedia_url", "thumbnail_url", "tag_names", "c_options", 
+      "w_options", "options_content_type", "code_data", "code_language", 
+      "explanation", "explanation_content_type", "toughness"
+    ];
+    
+    // Transform questions data
+    const rows = questions.map((q, index) => {
+      const correctOption = q.options.find(opt => opt.isCorrect);
+      const wrongOptions = q.options.filter(opt => !opt.isCorrect).map(opt => `OPTION : ${opt.text}`).join('\n');
+      
+      return [
+        uuidv4(), // question_id
+        "CODE_ANALYSIS_MULTIPLE_CHOICE", // question_type
+        "", // short_text
+        q.questionText, // question_text
+        index, // question_key
+        "HTML", // content_type
+        0, // multimedia_count
+        "", // multimedia_format
+        "", // multimedia_url
+        "", // thumbnail_url
+        `PYTHON_CODING_ANALYSIS\n${q.difficulty.toUpperCase()}`, // tag_names
+        `OPTION : ${correctOption.text}`, // c_options
+        wrongOptions, // w_options
+        "TEXT", // options_content_type
+        q.code_data, // code_data
+        "python", // code_language
+        q.explanation, // explanation
+        "MARKDOWN", // explanation_content_type
+        q.difficulty.toUpperCase() // toughness
+      ];
     });
-    // In a real app, this would trigger an actual download
+    
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += headers.join(",") + "\n";
+    
+    rows.forEach(row => {
+      // Escape fields that may contain commas or quotes
+      const escapedRow = row.map(field => {
+        if (typeof field === 'string') {
+          if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+            return `"${field.replace(/"/g, '""')}"`;
+          }
+        }
+        return field;
+      });
+      csvContent += escapedRow.join(",") + "\n";
+    });
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "questions_data.csv");
+    document.body.appendChild(link);
+    
+    // Trigger download
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Download Complete",
+      description: "Your Google Sheet has been downloaded successfully",
+    });
   };
   
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Generate MCQs</h1>
+        <h1 className="text-3xl font-bold text-slate-800">Generate Questions</h1>
         <p className="text-slate-500 mt-2">Create custom multiple choice questions</p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <QuestionForm onGenerateStart={handleStartGeneration} />
+          <QuestionForm 
+            onGenerateStart={handleStartGeneration} 
+            questionType={questionType}
+            setQuestionType={setQuestionType}
+          />
           
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h2>
@@ -198,7 +268,7 @@ const GenerateMCQs = () => {
               </div>
               <h2 className="text-xl font-semibold text-slate-800 mb-2">No Questions Generated Yet</h2>
               <p className="text-slate-500 max-w-md">
-                Fill out the form and click "Generate MCQs" to create your questions. They will appear here once generated.
+                Fill out the form and click "Generate Questions" to create your questions. They will appear here once generated.
               </p>
               
               <div className="mt-8 p-6 bg-slate-50 rounded-lg border border-slate-100 w-full max-w-lg">

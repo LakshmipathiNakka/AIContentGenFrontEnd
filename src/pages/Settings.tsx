@@ -1,332 +1,202 @@
 
 import { useState, useEffect } from 'react';
-import { Save, Upload, Key, Globe, Brush, Database } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
-  const { toast } = useToast();
-  const [apiKey, setApiKey] = useState('');
-  const [apiEndpoint, setApiEndpoint] = useState('');
-  const [maxTokens, setMaxTokens] = useState(2000);
-  const [temperature, setTemperature] = useState(0.7);
-  const [modelName, setModelName] = useState('gpt-35-turbo');
-  const [theme, setTheme] = useState('light');
-  const [exportFormat, setExportFormat] = useState('json');
+  const [settings, setSettings] = useState({
+    theme: localStorage.getItem('theme') || 'light',
+    apiEndpoint: localStorage.getItem('apiEndpoint') || 'https://api.mcqgenerator.com',
+    apiKey: localStorage.getItem('apiKey') || '',
+    defaultQuestionType: localStorage.getItem('defaultQuestionType') || 'General MCQs',
+    saveHistory: localStorage.getItem('saveHistory') === 'true',
+    notificationsEnabled: localStorage.getItem('notificationsEnabled') === 'true',
+    animationsEnabled: localStorage.getItem('animationsEnabled') !== 'false',
+  });
+  
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Load settings from localStorage on component mount
+  const { toast } = useToast();
+
+  // Save settings to localStorage whenever they change
   useEffect(() => {
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      const parsedSettings = JSON.parse(savedSettings);
-      setApiKey(parsedSettings.apiKey || '');
-      setApiEndpoint(parsedSettings.apiEndpoint || '');
-      setMaxTokens(parsedSettings.maxTokens || 2000);
-      setTemperature(parsedSettings.temperature || 0.7);
-      setModelName(parsedSettings.modelName || 'gpt-35-turbo');
-      setTheme(parsedSettings.theme || 'light');
-      setExportFormat(parsedSettings.exportFormat || 'json');
-    }
-  }, []);
+    Object.entries(settings).forEach(([key, value]) => {
+      localStorage.setItem(key, value.toString());
+    });
+  }, [settings]);
   
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     setIsSaving(true);
     
-    // Save settings to localStorage
-    const settings = {
-      apiKey,
-      apiEndpoint,
-      maxTokens,
-      temperature,
-      modelName,
-      theme,
-      exportFormat
-    };
-    
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-    
-    // Apply theme changes
-    document.documentElement.setAttribute('data-theme', theme);
-    
-    // Simulate a short delay to show the saving state
+    // Simulate API call
     setTimeout(() => {
+      Object.entries(settings).forEach(([key, value]) => {
+        localStorage.setItem(key, value.toString());
+      });
+      
       setIsSaving(false);
       toast({
         title: "Settings saved",
-        description: "Your changes have been successfully saved",
+        description: "Your preferences have been updated successfully",
       });
-    }, 500);
+    }, 800);
+  };
+  
+  const handleReset = () => {
+    const defaultSettings = {
+      theme: 'light',
+      apiEndpoint: 'https://api.mcqgenerator.com',
+      apiKey: '',
+      defaultQuestionType: 'General MCQs',
+      saveHistory: true,
+      notificationsEnabled: true,
+      animationsEnabled: true,
+    };
+    
+    setSettings(defaultSettings);
+    
+    toast({
+      title: "Settings reset",
+      description: "All settings have been reset to defaults",
+    });
   };
   
   return (
-    <div className="settings-page">
-      <div className="page-header">
-        <h1 className="page-title">Settings</h1>
-        <p className="page-subtitle">Configure your question generator application</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-800 gradient-text">Settings</h1>
+        <p className="text-slate-500 mt-2">Customize your MCQ Generator experience</p>
       </div>
       
-      <div className="settings-container">
-        <div className="settings-main">
-          <form onSubmit={handleSaveSettings}>
-            <div className="settings-card">
-              <div className="card-header">
-                <div className="card-icon">
-                  <Key className="icon-medium" />
-                </div>
-                <h2 className="card-title">API Configuration</h2>
-              </div>
-              
-              <div className="card-content">
-                <div className="form-field">
-                  <label htmlFor="apiKey" className="field-label">
-                    Azure OpenAI API Key
-                  </label>
-                  <input
-                    type="password"
-                    id="apiKey"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Azure OpenAI API Key"
-                    className="text-input"
-                  />
-                  <p className="field-hint">
-                    Your API key will be stored securely
-                  </p>
-                </div>
-                
-                <div className="form-field">
-                  <label htmlFor="apiEndpoint" className="field-label">
-                    API Endpoint
-                  </label>
-                  <input
-                    type="text"
-                    id="apiEndpoint"
-                    value={apiEndpoint}
-                    onChange={(e) => setApiEndpoint(e.target.value)}
-                    placeholder="https://your-resource.openai.azure.com/"
-                    className="text-input"
-                  />
-                </div>
-                
-                <div className="form-field">
-                  <label htmlFor="model" className="field-label">
-                    Model Name
-                  </label>
-                  <select
-                    id="model"
-                    value={modelName}
-                    onChange={(e) => setModelName(e.target.value)}
-                    className="select-input"
-                  >
-                    <option value="gpt-35-turbo">GPT-3.5 Turbo</option>
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="gpt-4-32k">GPT-4 32k</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <div className="settings-card">
-              <div className="card-header">
-                <div className="card-icon">
-                  <Globe className="icon-medium" />
-                </div>
-                <h2 className="card-title">Model Parameters</h2>
-              </div>
-              
-              <div className="card-content">
-                <div className="form-field">
-                  <div className="field-header">
-                    <label htmlFor="maxTokens" className="field-label">
-                      Max Tokens: {maxTokens}
-                    </label>
-                    <span className="field-range">Range: 100-4000</span>
-                  </div>
-                  <input
-                    type="range"
-                    id="maxTokens"
-                    min="100"
-                    max="4000"
-                    step="100"
-                    value={maxTokens}
-                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                    className="range-input"
-                  />
-                </div>
-                
-                <div className="form-field">
-                  <div className="field-header">
-                    <label htmlFor="temperature" className="field-label">
-                      Temperature: {temperature}
-                    </label>
-                    <span className="field-range">Range: 0-1</span>
-                  </div>
-                  <input
-                    type="range"
-                    id="temperature"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={temperature}
-                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                    className="range-input"
-                  />
-                  <div className="range-labels">
-                    <span>More deterministic</span>
-                    <span>More creative</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="settings-card">
-              <div className="card-header">
-                <div className="card-icon">
-                  <Database className="icon-medium" />
-                </div>
-                <h2 className="card-title">Export Settings</h2>
-              </div>
-              
-              <div className="card-content">
-                <div className="form-field">
-                  <label className="field-label">
-                    Export Format
-                  </label>
-                  <div className="radio-group">
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        value="json"
-                        checked={exportFormat === 'json'}
-                        onChange={() => setExportFormat('json')}
-                        className="radio-input"
-                      />
-                      <span className="radio-label">JSON</span>
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        value="csv"
-                        checked={exportFormat === 'csv'}
-                        onChange={() => setExportFormat('csv')}
-                        className="radio-input"
-                      />
-                      <span className="radio-label">CSV</span>
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        value="zip"
-                        checked={exportFormat === 'zip'}
-                        onChange={() => setExportFormat('zip')}
-                        className="radio-input"
-                      />
-                      <span className="radio-label">ZIP</span>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="form-field">
-                  <button 
-                    type="button"
-                    className="outline-button"
-                  >
-                    <Upload className="button-icon" />
-                    Import Configuration
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="form-actions">
-              <button
-                type="submit"
-                className={`primary-button ${isSaving ? 'loading' : ''}`}
-                disabled={isSaving}
-              >
-                <Save className="button-icon" />
-                {isSaving ? 'Saving...' : 'Save Settings'}
-              </button>
-            </div>
-          </form>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm p-6 border neon-card mb-8">
+        <h2 className="text-xl font-semibold mb-4">Appearance</h2>
         
-        <div className="settings-sidebar">
-          <div className="settings-card sticky">
-            <div className="card-header">
-              <div className="card-icon">
-                <Brush className="icon-medium" />
+        <div className="mb-6">
+          <label className="block text-slate-700 mb-2">Theme</label>
+          <div className="theme-options">
+            <div 
+              className={`theme-option hover-scale ${settings.theme === 'light' ? 'selected' : ''}`} 
+              onClick={() => setSettings({...settings, theme: 'light'})}
+            >
+              <div className="theme-preview light">
+                <div className="theme-header"></div>
+                <div className="theme-body">
+                  <div className="theme-line"></div>
+                  <div className="theme-line short"></div>
+                </div>
               </div>
-              <h2 className="card-title">Appearance</h2>
+              <div className="theme-label">Light</div>
             </div>
             
-            <div className="card-content">
-              <div className="form-field">
-                <label className="field-label">
-                  Theme
-                </label>
-                <div className="theme-options">
-                  <div
-                    onClick={() => setTheme('light')}
-                    className={`theme-option ${theme === 'light' ? 'selected' : ''}`}
-                  >
-                    <div className="theme-preview light">
-                      <div className="theme-header"></div>
-                      <div className="theme-body">
-                        <div className="theme-line"></div>
-                        <div className="theme-line short"></div>
-                      </div>
-                    </div>
-                    <div className="theme-label">Light</div>
-                  </div>
-                  
-                  <div
-                    onClick={() => setTheme('dark')}
-                    className={`theme-option ${theme === 'dark' ? 'selected' : ''}`}
-                  >
-                    <div className="theme-preview dark">
-                      <div className="theme-header"></div>
-                      <div className="theme-body">
-                        <div className="theme-line"></div>
-                        <div className="theme-line short"></div>
-                      </div>
-                    </div>
-                    <div className="theme-label">Dark</div>
-                  </div>
+            <div 
+              className={`theme-option hover-scale ${settings.theme === 'dark' ? 'selected' : ''}`}
+              onClick={() => setSettings({...settings, theme: 'dark'})}
+            >
+              <div className="theme-preview dark">
+                <div className="theme-header"></div>
+                <div className="theme-body">
+                  <div className="theme-line"></div>
+                  <div className="theme-line short"></div>
                 </div>
               </div>
-              
-              <div className="form-field">
-                <label className="field-label">
-                  Primary Color
-                </label>
-                <div className="color-options">
-                  {['#4F46E5', '#2563EB', '#7C3AED', '#DB2777', '#10B981'].map((color) => (
-                    <div
-                      key={color}
-                      className="color-option"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-              
-              <div className="form-field">
-                <label className="field-label">
-                  Font Size
-                </label>
-                <select
-                  className="select-input"
-                >
-                  <option>Small</option>
-                  <option>Medium</option>
-                  <option>Large</option>
-                </select>
-              </div>
+              <div className="theme-label">Dark</div>
             </div>
           </div>
         </div>
+        
+        <div className="mb-6">
+          <label className="flex items-center">
+            <input 
+              type="checkbox" 
+              checked={settings.animationsEnabled}
+              onChange={() => setSettings({...settings, animationsEnabled: !settings.animationsEnabled})}
+              className="mr-2 h-4 w-4"
+            />
+            <span>Enable animations and transitions</span>
+          </label>
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-sm p-6 border neon-card mb-8">
+        <h2 className="text-xl font-semibold mb-4">API Configuration</h2>
+        
+        <div className="mb-4">
+          <label className="block text-slate-700 mb-2">API Endpoint</label>
+          <input 
+            type="text" 
+            value={settings.apiEndpoint}
+            onChange={(e) => setSettings({...settings, apiEndpoint: e.target.value})}
+            className="w-full px-4 py-2 border rounded-md interactive-input"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-slate-700 mb-2">API Key</label>
+          <input 
+            type="password" 
+            value={settings.apiKey}
+            onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
+            className="w-full px-4 py-2 border rounded-md interactive-input"
+          />
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-sm p-6 border neon-card mb-8">
+        <h2 className="text-xl font-semibold mb-4">Default Settings</h2>
+        
+        <div className="mb-4">
+          <label className="block text-slate-700 mb-2">Default Question Type</label>
+          <select 
+            value={settings.defaultQuestionType}
+            onChange={(e) => setSettings({...settings, defaultQuestionType: e.target.value})}
+            className="w-full px-4 py-2 border rounded-md interactive-input"
+          >
+            <option value="General MCQs">General MCQs</option>
+            <option value="Coding Analysis MCQs">Coding Analysis MCQs</option>
+            <option value="Coding Questions">Coding Questions</option>
+          </select>
+        </div>
+        
+        <div className="mb-6">
+          <label className="flex items-center">
+            <input 
+              type="checkbox" 
+              checked={settings.saveHistory}
+              onChange={() => setSettings({...settings, saveHistory: !settings.saveHistory})}
+              className="mr-2 h-4 w-4"
+            />
+            <span>Save generation history</span>
+          </label>
+        </div>
+        
+        <div className="mb-6">
+          <label className="flex items-center">
+            <input 
+              type="checkbox" 
+              checked={settings.notificationsEnabled}
+              onChange={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
+              className="mr-2 h-4 w-4"
+            />
+            <span>Enable notifications</span>
+          </label>
+        </div>
+      </div>
+      
+      <div className="flex space-x-4">
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          className="neon-button"
+        >
+          {isSaving ? 'Saving...' : 'Save Settings'}
+        </Button>
+        
+        <Button 
+          variant="outline"
+          onClick={handleReset}
+          className="hover-scale"
+        >
+          Reset to Defaults
+        </Button>
       </div>
     </div>
   );

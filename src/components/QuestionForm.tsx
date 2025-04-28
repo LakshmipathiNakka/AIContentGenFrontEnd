@@ -11,6 +11,39 @@ const QUESTION_TYPES = {
   CODING_QUESTIONS: 'Coding Questions'
 };
 
+// Define subjects
+const SUBJECTS = [
+  'JavaScript', 'Python', 'Java', 'C#', 'C++', 'Go', 'Ruby', 'Swift'
+];
+
+// Sample input data
+const initialInputs = [
+  {
+    subject: "Python",
+    no_of_questions: 6,
+    topic: "abs in Built-in Functions",
+    difficulty_level_tag: "Easy",
+    topic_tag: "PYTHON_CODING_ANALYSIS",
+    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
+  },
+  {
+    subject: "Python",
+    no_of_questions: 4,
+    topic: "abs in Built-in Functions",
+    difficulty_level_tag: "Medium",
+    topic_tag: "PYTHON_CODING_ANALYSIS",
+    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
+  },
+  {
+    subject: "Python",
+    no_of_questions: 3,
+    topic: "abs in Built-in Functions",
+    difficulty_level_tag: "Hard",
+    topic_tag: "PYTHON_CODING_ANALYSIS",
+    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
+  }
+];
+
 interface InputData {
   subject: string;
   no_of_questions: number;
@@ -32,16 +65,7 @@ const QuestionForm = ({
   setQuestionType 
 }: QuestionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [inputs, setInputs] = useState<InputData[]>([
-    {
-      subject: "Python",
-      no_of_questions: 6,
-      topic: "abs in Built-in Functions",
-      difficulty_level_tag: "Easy",
-      topic_tag: "PYTHON_CODING_ANALYSIS",
-      sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
-    }
-  ]);
+  const [inputs, setInputs] = useState<InputData[]>(initialInputs);
   
   const [promptText, setPromptText] = useState('');
   
@@ -51,7 +75,7 @@ const QuestionForm = ({
     
     switch(questionType) {
       case QUESTION_TYPES.CODING_ANALYSIS:
-        typeSuffix = "and code analysis questions";
+        typeSuffix = "code analysis questions";
         break;
       case QUESTION_TYPES.CODING_QUESTIONS:
         typeSuffix = "coding questions";
@@ -94,15 +118,15 @@ const QuestionForm = ({
   };
   
   return (
-    <div className="question-form-card">
+    <div className="question-form-card neon-card hover-glow">
       <div className="form-header">
         <div className="form-icon">
           <FileCode className="icon-medium" />
         </div>
-        <h2 className="form-title">Generate New Questions</h2>
+        <h2 className="form-title gradient-text">Generate New Questions</h2>
       </div>
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="animate-slide-up">
         <div className="form-section">
           <h3 className="section-title">
             Question Type
@@ -112,7 +136,7 @@ const QuestionForm = ({
             <select
               value={questionType}
               onChange={(e) => setQuestionType(e.target.value)}
-              className="question-type-dropdown"
+              className="question-type-dropdown interactive-input"
             >
               {Object.values(QUESTION_TYPES).map((type) => (
                 <option key={type} value={type}>{type}</option>
@@ -137,7 +161,7 @@ const QuestionForm = ({
             <h3 className="section-title">Complete Prompt</h3>
             <button
               type="button" 
-              className="outline-button small" 
+              className="outline-button small button-hover-effect" 
               onClick={generatePrompt}
             >
               Generate Prompt
@@ -147,7 +171,7 @@ const QuestionForm = ({
           <AnimatedTextarea 
             text={promptText}
             onChange={setPromptText}
-            className="prompt-textarea"
+            className="prompt-textarea interactive-input"
           />
         </div>
         
@@ -155,7 +179,7 @@ const QuestionForm = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="primary-button full-width"
+            className="primary-button full-width neon-button"
           >
             {isLoading ? 'Generating...' : 'Generate Questions'}
           </button>
