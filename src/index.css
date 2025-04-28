@@ -85,7 +85,7 @@
   }
 }
 
-/* Enhanced Animation Keyframes */
+/* Enhanced Animation Keyframes - SLOW DOWN CODE SYMBOL ANIMATIONS */
 @keyframes float {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
@@ -120,6 +120,21 @@
   }
 }
 
+@keyframes gradient-3d-shift {
+  0% {
+    background-position: 0% 50%;
+    box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    background-position: 100% 50%;
+    box-shadow: inset 0 0 70px rgba(255, 255, 255, 0.3);
+  }
+  100% {
+    background-position: 0% 50%;
+    box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+}
+
 @keyframes neon-glow {
   0%, 100% {
     box-shadow: 0 0 5px rgba(56, 189, 248, 0.6),
@@ -150,15 +165,15 @@
   }
 }
 
-/* Neon Login Page Styles */
+/* Neon Login Page Styles - WITH UPDATED WHITE BACKGROUND */
 .neon-label {
-  @apply flex items-center space-x-2 text-sm font-medium text-slate-300 mb-2 animate-fade-in;
+  @apply flex items-center space-x-2 text-sm font-medium text-slate-700 mb-2 animate-fade-in;
   opacity: 0;
   animation: fade-in-delay 0.5s forwards;
 }
 
 .neon-input {
-  @apply w-full px-4 py-2 text-white bg-slate-800/60 border border-slate-700 rounded-md focus:outline-none;
+  @apply w-full px-4 py-2 text-slate-800 bg-white border border-slate-300 rounded-md focus:outline-none;
   transition: all 0.3s ease;
 }
 
@@ -201,7 +216,7 @@
 }
 
 .neon-button-google {
-  @apply bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all duration-300;
+  @apply bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 hover:text-slate-800 transition-all duration-300;
 }
 
 .neon-button-google:hover {
@@ -276,11 +291,11 @@
   height: 100%;
 }
 
-/* Animation for Code Symbols */
+/* Animation for Code Symbols - SLOWED DOWN */
 .code-symbols span {
   position: absolute;
   display: block;
-  animation: float linear infinite;
+  animation: float 15s linear infinite; /* Increased from what was likely 5-8s to 15s */
 }
 
 /* Animations for Page Elements */
@@ -360,4 +375,86 @@
 
 .interactive-input:focus {
   transform: scale(1.02);
+}
+
+/* 3D Gradient Backgrounds */
+.gradient-3d-bg {
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  animation: gradient-3d-shift 15s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-3d-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 70%);
+  pointer-events: none;
+}
+
+.gradient-3d-bg-subtle {
+  background: linear-gradient(-45deg, #f6f8fa, #e2e8f0, #cbd5e1, #e2e8f0);
+  background-size: 400% 400%;
+  animation: gradient-3d-shift 20s ease infinite;
+}
+
+.gradient-3d-bg-dark {
+  background: linear-gradient(-45deg, #1e293b, #334155, #0f172a, #1e293b);
+  background-size: 400% 400%;
+  animation: gradient-3d-shift 20s ease infinite;
+}
+
+/* User Avatar Styles */
+.user-avatar {
+  @apply flex items-center justify-center bg-blue-600 text-white rounded-full w-10 h-10 font-bold text-lg;
+}
+
+/* Dark mode toggle */
+.theme-toggle {
+  @apply p-2 rounded-full transition-colors;
+}
+.theme-toggle:hover {
+  @apply bg-slate-200 dark:bg-slate-700;
+}
+.dark .dark-mode-icon {
+  @apply text-yellow-400;
+}
+.light-mode-icon {
+  @apply text-slate-800;
+}
+
+/* Dashboard improvements */
+.dashboard-card {
+  @apply bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300;
+}
+.dashboard-card:hover {
+  @apply shadow-xl transform -translate-y-1;
+}
+
+.card-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.card-title {
+  @apply text-xl font-bold text-slate-800 dark:text-white;
+}
+
+.card-content {
+  @apply space-y-4;
+}
+
+.stat-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5;
+}
+
+.stat-card {
+  @apply bg-white dark:bg-slate-800 rounded-lg shadow p-5 border border-slate-200 dark:border-slate-700 transition-all duration-300;
+}
+.stat-card:hover {
+  @apply shadow-lg border-blue-300 dark:border-blue-500;
 }
