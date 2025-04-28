@@ -63,12 +63,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				arcade: {
-					dark: '#050A18',
-					purple: '#7B68EE',
-					pink: '#D946EF',
-					terminal: '#11141F',
-					gray: '#323848',
+				mcq: {
+					primary: '#4F46E5',
+					secondary: '#6366F1',
+					tertiary: '#818CF8',
+					light: '#C7D2FE',
+					dark: '#1E293B',
+					success: '#10B981',
+					error: '#EF4444',
+					warning: '#F59E0B',
+					info: '#3B82F6',
+					background: '#F8FAFC',
+					border: '#E2E8F0',
 				}
 			},
 			borderRadius: {
@@ -93,10 +99,6 @@ export default {
 						height: '0'
 					}
 				},
-				'cursor-blink': {
-					'0%, 100%': { opacity: '1' },
-					'50%': { opacity: '0' }
-				},
 				'fade-in': {
 					'0%': { opacity: '0', transform: 'translateY(10px)' },
 					'100%': { opacity: '1', transform: 'translateY(0)' }
@@ -109,7 +111,6 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'cursor-blink': 'cursor-blink 1s step-end infinite',
 				'fade-in': 'fade-in 0.6s ease-out forwards',
 				'slide-up': 'slide-up 0.5s ease-out forwards'
 			}
