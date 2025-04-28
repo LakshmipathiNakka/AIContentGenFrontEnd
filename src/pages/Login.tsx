@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Google, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 
@@ -187,7 +187,7 @@ const Login = () => {
             onClick={handleGoogleLogin}
             disabled={isSubmitting}
           >
-            <Google className="w-5 h-5 mr-2" />
+            <LogIn className="w-5 h-5 mr-2" />
             Login with Google
           </Button>
         </form>
