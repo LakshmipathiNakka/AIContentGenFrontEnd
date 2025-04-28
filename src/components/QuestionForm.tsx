@@ -1,10 +1,15 @@
 
-import { useState } from 'react';
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
 import { FileCode, Code2, GraduationCap } from 'lucide-react';
 import DynamicInputs from './DynamicInputs';
 import AnimatedTextarea from './AnimatedTextarea';
-import { Button } from "@/components/ui/button";
+
+// Define question types
+const QUESTION_TYPES = {
+  GENERAL_MCQ: 'General MCQs',
+  CODING_ANALYSIS: 'Coding Analysis MCQs',
+  CODING_QUESTIONS: 'Coding Questions'
+};
 
 interface InputData {
   subject: string;
@@ -15,8 +20,17 @@ interface InputData {
   sub_topic_tag: string;
 }
 
-const QuestionForm = ({ onGenerateStart }: { onGenerateStart?: () => void }) => {
-  const { toast } = useToast();
+interface QuestionFormProps {
+  onGenerateStart?: (inputs: InputData[]) => void;
+  questionType: string;
+  setQuestionType: (type: string) => void;
+}
+
+const QuestionForm = ({ 
+  onGenerateStart, 
+  questionType, 
+  setQuestionType 
+}: QuestionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [inputs, setInputs] = useState<InputData[]>([
     {
@@ -31,15 +45,35 @@ const QuestionForm = ({ onGenerateStart }: { onGenerateStart?: () => void }) => 
   
   const [promptText, setPromptText] = useState('');
   
-  // Generate a prompt based on the inputs
+  // Generate a prompt based on the inputs and selected question type
   const generatePrompt = () => {
-    const prompt = `Create ${inputs.reduce((sum, input) => sum + input.no_of_questions, 0)} multiple choice questions about ${inputs.map(input => 
-      `${input.topic} in ${input.subject} (Difficulty: ${input.difficulty_level_tag}, ${input.no_of_questions} questions)`
-    ).join(', ')}. Include code examples where appropriate.`;
+    let typeSuffix = "";
+    
+    switch(questionType) {
+      case QUESTION_TYPES.CODING_ANALYSIS:
+        typeSuffix = "and code analysis questions";
+        break;
+      case QUESTION_TYPES.CODING_QUESTIONS:
+        typeSuffix = "coding questions";
+        break;
+      default:
+        typeSuffix = "multiple choice questions";
+    }
+    
+    const prompt = inputs.map(input => 
+      `You are a developer specializing in ${input.subject} with 20 years of experience. You need to prepare ${input.no_of_questions} ${input.difficulty_level_tag} ${typeSuffix} for the recruitment of freshers on the topic of ${input.topic} in the ${input.subject} language.`
+    ).join('\n\n');
     
     setPromptText(prompt);
     return prompt;
   };
+  
+  useEffect(() => {
+    // Update prompt when question type changes
+    if (promptText) {
+      generatePrompt();
+    }
+  }, [questionType]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,33 +84,45 @@ const QuestionForm = ({ onGenerateStart }: { onGenerateStart?: () => void }) => 
       generatePrompt();
     }
     
-    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       
-      toast({
-        title: "Questions Generation Started",
-        description: `Generating questions based on your criteria. Please wait.`,
-      });
-      
       if (onGenerateStart) {
-        onGenerateStart();
+        onGenerateStart(inputs);
       }
     }, 1000);
   };
   
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border">
-      <div className="mb-6 flex items-center">
-        <div className="p-3 rounded-lg bg-mcq-light">
-          <FileCode className="h-8 w-8 text-mcq-primary" />
+    <div className="question-form-card">
+      <div className="form-header">
+        <div className="form-icon">
+          <FileCode className="icon-medium" />
         </div>
-        <h2 className="ml-4 text-xl font-semibold text-slate-800">Generate New MCQs</h2>
+        <h2 className="form-title">Generate New Questions</h2>
       </div>
       
       <form onSubmit={handleSubmit}>
-        <div className="mb-6">
-          <h3 className="text-md font-medium text-slate-700 mb-4">
+        <div className="form-section">
+          <h3 className="section-title">
+            Question Type
+          </h3>
+          
+          <div className="question-type-selector">
+            <select
+              value={questionType}
+              onChange={(e) => setQuestionType(e.target.value)}
+              className="question-type-dropdown"
+            >
+              {Object.values(QUESTION_TYPES).map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        <div className="form-section">
+          <h3 className="section-title">
             Question Parameters
           </h3>
           
@@ -86,33 +132,32 @@ const QuestionForm = ({ onGenerateStart }: { onGenerateStart?: () => void }) => 
           />
         </div>
         
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-md font-medium text-slate-700">Complete Prompt</h3>
-            <Button
+        <div className="form-section">
+          <div className="prompt-header">
+            <h3 className="section-title">Complete Prompt</h3>
+            <button
               type="button" 
-              variant="outline" 
-              size="sm" 
+              className="outline-button small" 
               onClick={generatePrompt}
             >
               Generate Prompt
-            </Button>
+            </button>
           </div>
           
           <AnimatedTextarea 
             text={promptText}
             onChange={setPromptText}
-            className="font-mono text-sm"
+            className="prompt-textarea"
           />
         </div>
         
-        <div className="mt-8">
+        <div className="form-actions">
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mcq-primary hover:bg-mcq-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary disabled:opacity-70"
+            className="primary-button full-width"
           >
-            {isLoading ? 'Generating...' : 'Generate MCQs'}
+            {isLoading ? 'Generating...' : 'Generate Questions'}
           </button>
         </div>
       </form>

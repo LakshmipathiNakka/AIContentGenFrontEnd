@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Textarea } from "@/components/ui/textarea";
 
 interface AnimatedTextareaProps {
   text: string;
@@ -62,13 +61,13 @@ const AnimatedTextarea = ({
   };
 
   return (
-    <Textarea
+    <textarea
       ref={textareaRef}
       value={readOnly ? displayText : editableText}
       onChange={handleChange}
       placeholder={placeholder}
       readOnly={readOnly || isAnimating}
-      className={`min-h-[200px] transition-all ${isAnimating ? 'animate-pulse' : ''} ${className}`}
+      className={`animated-textarea ${isAnimating ? 'animating' : ''} ${className}`}
     />
   );
 };

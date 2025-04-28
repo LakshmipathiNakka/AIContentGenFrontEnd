@@ -1,4 +1,6 @@
 
+@import './App.css';
+/* Keeping base Tailwind imports for compatibility with shadcn components */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,26 +76,4 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 243 75% 59%;
   }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
-
-.code-block {
-  @apply bg-slate-100 dark:bg-slate-800 rounded-md p-4 font-mono text-sm overflow-auto;
-}
-
-.question-card {
-  @apply border rounded-lg p-6 mb-6 bg-white shadow-sm hover:shadow-md transition-all;
-}
-
-.stats-card {
-  @apply bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md border;
 }

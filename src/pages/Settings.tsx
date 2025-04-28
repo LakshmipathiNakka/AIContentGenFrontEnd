@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Upload, Key, Globe, Brush, Database } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,12 +12,46 @@ const Settings = () => {
   const [modelName, setModelName] = useState('gpt-35-turbo');
   const [theme, setTheme] = useState('light');
   const [exportFormat, setExportFormat] = useState('json');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('appSettings');
+    if (savedSettings) {
+      const parsedSettings = JSON.parse(savedSettings);
+      setApiKey(parsedSettings.apiKey || '');
+      setApiEndpoint(parsedSettings.apiEndpoint || '');
+      setMaxTokens(parsedSettings.maxTokens || 2000);
+      setTemperature(parsedSettings.temperature || 0.7);
+      setModelName(parsedSettings.modelName || 'gpt-35-turbo');
+      setTheme(parsedSettings.theme || 'light');
+      setExportFormat(parsedSettings.exportFormat || 'json');
+    }
+  }, []);
   
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     
-    // Simulate saving settings
+    // Save settings to localStorage
+    const settings = {
+      apiKey,
+      apiEndpoint,
+      maxTokens,
+      temperature,
+      modelName,
+      theme,
+      exportFormat
+    };
+    
+    localStorage.setItem('appSettings', JSON.stringify(settings));
+    
+    // Apply theme changes
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Simulate a short delay to show the saving state
     setTimeout(() => {
+      setIsSaving(false);
       toast({
         title: "Settings saved",
         description: "Your changes have been successfully saved",
@@ -26,26 +60,26 @@ const Settings = () => {
   };
   
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Settings</h1>
-        <p className="text-slate-500 mt-2">Configure your MCQ generator application</p>
+    <div className="settings-page">
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Configure your question generator application</p>
       </div>
       
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="settings-container">
+        <div className="settings-main">
           <form onSubmit={handleSaveSettings}>
-            <div className="bg-white rounded-xl shadow-sm p-6 border mb-8">
-              <div className="flex items-center mb-6">
-                <div className="p-3 rounded-lg bg-mcq-light">
-                  <Key className="h-6 w-6 text-mcq-primary" />
+            <div className="settings-card">
+              <div className="card-header">
+                <div className="card-icon">
+                  <Key className="icon-medium" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-slate-800">API Configuration</h2>
+                <h2 className="card-title">API Configuration</h2>
               </div>
               
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="apiKey" className="block text-sm font-medium text-slate-700">
+              <div className="card-content">
+                <div className="form-field">
+                  <label htmlFor="apiKey" className="field-label">
                     Azure OpenAI API Key
                   </label>
                   <input
@@ -54,15 +88,15 @@ const Settings = () => {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Enter your Azure OpenAI API Key"
-                    className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
+                    className="text-input"
                   />
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="field-hint">
                     Your API key will be stored securely
                   </p>
                 </div>
                 
-                <div>
-                  <label htmlFor="apiEndpoint" className="block text-sm font-medium text-slate-700">
+                <div className="form-field">
+                  <label htmlFor="apiEndpoint" className="field-label">
                     API Endpoint
                   </label>
                   <input
@@ -71,19 +105,19 @@ const Settings = () => {
                     value={apiEndpoint}
                     onChange={(e) => setApiEndpoint(e.target.value)}
                     placeholder="https://your-resource.openai.azure.com/"
-                    className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
+                    className="text-input"
                   />
                 </div>
                 
-                <div>
-                  <label htmlFor="model" className="block text-sm font-medium text-slate-700">
+                <div className="form-field">
+                  <label htmlFor="model" className="field-label">
                     Model Name
                   </label>
                   <select
                     id="model"
                     value={modelName}
                     onChange={(e) => setModelName(e.target.value)}
-                    className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
+                    className="select-input"
                   >
                     <option value="gpt-35-turbo">GPT-3.5 Turbo</option>
                     <option value="gpt-4">GPT-4</option>
@@ -93,21 +127,21 @@ const Settings = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-6 border mb-8">
-              <div className="flex items-center mb-6">
-                <div className="p-3 rounded-lg bg-mcq-light">
-                  <Globe className="h-6 w-6 text-mcq-primary" />
+            <div className="settings-card">
+              <div className="card-header">
+                <div className="card-icon">
+                  <Globe className="icon-medium" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-slate-800">Model Parameters</h2>
+                <h2 className="card-title">Model Parameters</h2>
               </div>
               
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between">
-                    <label htmlFor="maxTokens" className="block text-sm font-medium text-slate-700">
+              <div className="card-content">
+                <div className="form-field">
+                  <div className="field-header">
+                    <label htmlFor="maxTokens" className="field-label">
                       Max Tokens: {maxTokens}
                     </label>
-                    <span className="text-xs text-slate-500">Range: 100-4000</span>
+                    <span className="field-range">Range: 100-4000</span>
                   </div>
                   <input
                     type="range"
@@ -117,16 +151,16 @@ const Settings = () => {
                     step="100"
                     value={maxTokens}
                     onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                    className="mt-1 block w-full accent-mcq-primary"
+                    className="range-input"
                   />
                 </div>
                 
-                <div>
-                  <div className="flex justify-between">
-                    <label htmlFor="temperature" className="block text-sm font-medium text-slate-700">
+                <div className="form-field">
+                  <div className="field-header">
+                    <label htmlFor="temperature" className="field-label">
                       Temperature: {temperature}
                     </label>
-                    <span className="text-xs text-slate-500">Range: 0-1</span>
+                    <span className="field-range">Range: 0-1</span>
                   </div>
                   <input
                     type="range"
@@ -136,9 +170,9 @@ const Settings = () => {
                     step="0.1"
                     value={temperature}
                     onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                    className="mt-1 block w-full accent-mcq-primary"
+                    className="range-input"
                   />
-                  <div className="mt-1 flex justify-between text-xs text-slate-500">
+                  <div className="range-labels">
                     <span>More deterministic</span>
                     <span>More creative</span>
                   </div>
@@ -146,143 +180,144 @@ const Settings = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-6 border mb-8">
-              <div className="flex items-center mb-6">
-                <div className="p-3 rounded-lg bg-mcq-light">
-                  <Database className="h-6 w-6 text-mcq-primary" />
+            <div className="settings-card">
+              <div className="card-header">
+                <div className="card-icon">
+                  <Database className="icon-medium" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-slate-800">Export Settings</h2>
+                <h2 className="card-title">Export Settings</h2>
               </div>
               
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
+              <div className="card-content">
+                <div className="form-field">
+                  <label className="field-label">
                     Export Format
                   </label>
-                  <div className="mt-2 space-x-4">
-                    <label className="inline-flex items-center">
+                  <div className="radio-group">
+                    <label className="radio-option">
                       <input
                         type="radio"
                         value="json"
                         checked={exportFormat === 'json'}
                         onChange={() => setExportFormat('json')}
-                        className="form-radio h-4 w-4 text-mcq-primary"
+                        className="radio-input"
                       />
-                      <span className="ml-2 text-sm text-slate-700">JSON</span>
+                      <span className="radio-label">JSON</span>
                     </label>
-                    <label className="inline-flex items-center">
+                    <label className="radio-option">
                       <input
                         type="radio"
                         value="csv"
                         checked={exportFormat === 'csv'}
                         onChange={() => setExportFormat('csv')}
-                        className="form-radio h-4 w-4 text-mcq-primary"
+                        className="radio-input"
                       />
-                      <span className="ml-2 text-sm text-slate-700">CSV</span>
+                      <span className="radio-label">CSV</span>
                     </label>
-                    <label className="inline-flex items-center">
+                    <label className="radio-option">
                       <input
                         type="radio"
                         value="zip"
                         checked={exportFormat === 'zip'}
                         onChange={() => setExportFormat('zip')}
-                        className="form-radio h-4 w-4 text-mcq-primary"
+                        className="radio-input"
                       />
-                      <span className="ml-2 text-sm text-slate-700">ZIP</span>
+                      <span className="radio-label">ZIP</span>
                     </label>
                   </div>
                 </div>
                 
-                <div>
+                <div className="form-field">
                   <button 
                     type="button"
-                    className="inline-flex items-center px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary"
+                    className="outline-button"
                   >
-                    <Upload className="mr-2 h-4 w-4" />
+                    <Upload className="button-icon" />
                     Import Configuration
                   </button>
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-end">
+            <div className="form-actions">
               <button
                 type="submit"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mcq-primary hover:bg-mcq-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mcq-primary"
+                className={`primary-button ${isSaving ? 'loading' : ''}`}
+                disabled={isSaving}
               >
-                <Save className="mr-2 h-4 w-4" />
-                Save Settings
+                <Save className="button-icon" />
+                {isSaving ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
           </form>
         </div>
         
-        <div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border mb-8 sticky top-8">
-            <div className="flex items-center mb-6">
-              <div className="p-3 rounded-lg bg-mcq-light">
-                <Brush className="h-6 w-6 text-mcq-primary" />
+        <div className="settings-sidebar">
+          <div className="settings-card sticky">
+            <div className="card-header">
+              <div className="card-icon">
+                <Brush className="icon-medium" />
               </div>
-              <h2 className="ml-4 text-lg font-semibold text-slate-800">Appearance</h2>
+              <h2 className="card-title">Appearance</h2>
             </div>
             
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+            <div className="card-content">
+              <div className="form-field">
+                <label className="field-label">
                   Theme
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="theme-options">
                   <div
                     onClick={() => setTheme('light')}
-                    className={`cursor-pointer rounded-md p-2 border ${theme === 'light' ? 'border-mcq-primary ring-2 ring-mcq-primary/20' : 'border-slate-200'}`}
+                    className={`theme-option ${theme === 'light' ? 'selected' : ''}`}
                   >
-                    <div className="h-20 bg-white rounded border border-slate-200 flex flex-col">
-                      <div className="h-4 bg-slate-100 m-1 rounded"></div>
-                      <div className="flex-1 m-1 flex flex-col">
-                        <div className="h-2 w-3/4 bg-slate-100 rounded mb-1"></div>
-                        <div className="h-2 w-1/2 bg-slate-100 rounded"></div>
+                    <div className="theme-preview light">
+                      <div className="theme-header"></div>
+                      <div className="theme-body">
+                        <div className="theme-line"></div>
+                        <div className="theme-line short"></div>
                       </div>
                     </div>
-                    <div className="text-center mt-1 text-xs font-medium text-slate-700">Light</div>
+                    <div className="theme-label">Light</div>
                   </div>
                   
                   <div
                     onClick={() => setTheme('dark')}
-                    className={`cursor-pointer rounded-md p-2 border ${theme === 'dark' ? 'border-mcq-primary ring-2 ring-mcq-primary/20' : 'border-slate-200'}`}
+                    className={`theme-option ${theme === 'dark' ? 'selected' : ''}`}
                   >
-                    <div className="h-20 bg-slate-800 rounded border border-slate-700 flex flex-col">
-                      <div className="h-4 bg-slate-700 m-1 rounded"></div>
-                      <div className="flex-1 m-1 flex flex-col">
-                        <div className="h-2 w-3/4 bg-slate-700 rounded mb-1"></div>
-                        <div className="h-2 w-1/2 bg-slate-700 rounded"></div>
+                    <div className="theme-preview dark">
+                      <div className="theme-header"></div>
+                      <div className="theme-body">
+                        <div className="theme-line"></div>
+                        <div className="theme-line short"></div>
                       </div>
                     </div>
-                    <div className="text-center mt-1 text-xs font-medium text-slate-700">Dark</div>
+                    <div className="theme-label">Dark</div>
                   </div>
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+              <div className="form-field">
+                <label className="field-label">
                   Primary Color
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="color-options">
                   {['#4F46E5', '#2563EB', '#7C3AED', '#DB2777', '#10B981'].map((color) => (
                     <div
                       key={color}
-                      className="w-full aspect-square rounded-full cursor-pointer border-2 border-white ring-offset-2 hover:ring-2 hover:ring-slate-200"
-                      style={{ background: color }}
+                      className="color-option"
+                      style={{ backgroundColor: color }}
                     />
                   ))}
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+              <div className="form-field">
+                <label className="field-label">
                   Font Size
                 </label>
                 <select
-                  className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-mcq-primary focus:border-mcq-primary sm:text-sm"
+                  className="select-input"
                 >
                   <option>Small</option>
                   <option>Medium</option>

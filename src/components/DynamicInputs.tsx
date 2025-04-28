@@ -1,9 +1,6 @@
 
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface InputData {
   subject: string;
@@ -30,11 +27,11 @@ const DynamicInputs = ({ inputs, setInputs }: DynamicInputsProps) => {
     setInputs([
       ...inputs,
       {
-        subject: "Python",
+        subject: "",
         no_of_questions: 5,
         topic: "",
         difficulty_level_tag: "Medium",
-        topic_tag: "PYTHON_CODING_ANALYSIS",
+        topic_tag: "",
         sub_topic_tag: ""
       }
     ]);
@@ -47,114 +44,100 @@ const DynamicInputs = ({ inputs, setInputs }: DynamicInputsProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="dynamic-inputs">
       {inputs.map((input, index) => (
-        <div key={index} className="p-4 border rounded-md bg-white shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-medium">Input #{index + 1}</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+        <div key={index} className="input-card">
+          <div className="input-header">
+            <h3 className="input-title">Input #{index + 1}</h3>
+            <button 
+              className="icon-button"
               onClick={() => removeInput(index)}
               disabled={inputs.length <= 1}
-              className="h-8 w-8 p-0"
             >
-              <Minus className="h-4 w-4" />
-            </Button>
+              <Minus className="icon-small" />
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
-              <Select 
+          <div className="input-fields">
+            <div className="form-field">
+              <label className="field-label">Subject</label>
+              <input
+                type="text"
                 value={input.subject}
-                onValueChange={(value) => handleInputChange(index, 'subject', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Python">Python</SelectItem>
-                  <SelectItem value="JavaScript">JavaScript</SelectItem>
-                  <SelectItem value="Java">Java</SelectItem>
-                  <SelectItem value="C++">C++</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(e) => handleInputChange(index, 'subject', e.target.value)}
+                placeholder="e.g. Python, JavaScript, Java"
+                className="text-input"
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Number of Questions</label>
-              <Input
+            <div className="form-field">
+              <label className="field-label">Number of Questions</label>
+              <input
                 type="number"
                 min="1"
                 max="20"
                 value={input.no_of_questions}
                 onChange={(e) => handleInputChange(index, 'no_of_questions', parseInt(e.target.value) || 1)}
-                className="w-full"
+                className="number-input"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Topic</label>
-              <Input
+            <div className="form-field">
+              <label className="field-label">Topic</label>
+              <input
                 type="text"
                 value={input.topic}
                 onChange={(e) => handleInputChange(index, 'topic', e.target.value)}
                 placeholder="e.g., Built-in Functions"
-                className="w-full"
+                className="text-input"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty Level</label>
-              <Select 
+            <div className="form-field">
+              <label className="field-label">Difficulty Level</label>
+              <select 
                 value={input.difficulty_level_tag}
-                onValueChange={(value) => handleInputChange(index, 'difficulty_level_tag', value)}
+                onChange={(e) => handleInputChange(index, 'difficulty_level_tag', e.target.value)}
+                className="select-input"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Easy">Easy</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Topic Tag</label>
-              <Input
+            <div className="form-field">
+              <label className="field-label">Topic Tag</label>
+              <input
                 type="text"
                 value={input.topic_tag}
                 onChange={(e) => handleInputChange(index, 'topic_tag', e.target.value)}
                 placeholder="e.g., PYTHON_CODING_ANALYSIS"
-                className="w-full"
+                className="text-input"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Sub Topic Tag</label>
-              <Input
+            <div className="form-field">
+              <label className="field-label">Sub Topic Tag</label>
+              <input
                 type="text"
                 value={input.sub_topic_tag}
                 onChange={(e) => handleInputChange(index, 'sub_topic_tag', e.target.value)}
                 placeholder="e.g., ABS_IN_BUILT_IN_FUNCTIONS"
-                className="w-full"
+                className="text-input"
               />
             </div>
           </div>
         </div>
       ))}
 
-      <Button 
-        variant="outline" 
+      <button 
+        className="outline-button full-width" 
         onClick={addNewInput} 
-        className="w-full"
       >
-        <Plus className="mr-2 h-4 w-4" />
+        <Plus className="button-icon" />
         Add New Input
-      </Button>
+      </button>
     </div>
   );
 };

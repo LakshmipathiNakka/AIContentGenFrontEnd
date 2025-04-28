@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CheckCircle, ArrowRight, Download } from 'lucide-react';
 
@@ -26,27 +27,27 @@ const GenerationProgress = ({ totalSteps, onComplete }: GenerationProgressProps)
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
   
   return (
-    <div className="w-full">
-      <h3 className="text-sm font-medium text-slate-700 mb-2">Generation Progress</h3>
-      <div className="flex items-center justify-between text-xs text-slate-500">
+    <div className="generation-progress">
+      <h3 className="progress-title">Generation Progress</h3>
+      <div className="progress-steps">
         {steps.map(step => (
-          <div key={step} className="flex items-center">
+          <div key={step} className={`progress-step ${currentStep > step ? 'completed' : ''} ${currentStep === step ? 'current' : ''}`}>
             {step < currentStep ? (
-              <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+              <CheckCircle className="step-icon completed" />
             ) : (
-              <div className="h-4 w-4 rounded-full border border-slate-300 mr-1"></div>
+              <div className="step-circle"></div>
             )}
-            <span>Step {step}</span>
-            {step < totalSteps && <ArrowRight className="h-4 w-4 mx-1 text-slate-400" />}
+            <span className="step-label">Step {step}</span>
+            {step < totalSteps && <ArrowRight className="step-arrow" />}
           </div>
         ))}
       </div>
       
       {isComplete && (
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-green-600">Generation Complete!</span>
-          <button className="inline-flex items-center text-mcq-primary hover:text-mcq-secondary">
-            <Download className="h-4 w-4 mr-1" />
+        <div className="progress-complete">
+          <span className="complete-message">Generation Complete!</span>
+          <button className="download-button">
+            <Download className="button-icon" />
             Download Questions
           </button>
         </div>

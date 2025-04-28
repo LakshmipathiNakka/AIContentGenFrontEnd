@@ -1,69 +1,118 @@
-# Welcome to your Lovable project
 
-## Project info
+# Question Generator
 
-**URL**: https://lovable.dev/projects/84322c50-98b7-4990-ba4e-2545accf5d91
+## Overview
+This application is a dynamic question generator designed for educators, trainers, and content creators to easily create multiple choice questions (MCQs) and coding-related assessment questions. The application supports generating different types of questions including general MCQs, coding analysis questions, and technical coding questions with customizable parameters.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+### Question Generation
+- **Multiple Question Types**: Generate general MCQs, coding analysis questions, or coding questions
+- **Customizable Parameters**: Set subject, number of questions, difficulty level, and topics
+- **Dynamic Input Fields**: Add multiple question sets with different parameters in a single generation
+- **Prompt Preview and Editing**: Review and edit the prompt that will be sent to the AI before generation
 
-**Use Lovable**
+### Dashboard
+- **Usage Statistics**: Track number of questions generated, subjects covered, and other metrics
+- **Recent Activity**: View history of generation and editing actions
+- **Distribution Analysis**: Visualize breakdown of questions by language and difficulty level
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/84322c50-98b7-4990-ba4e-2545accf5d91) and start prompting.
+### Settings
+- **API Configuration**: Configure API keys, endpoints, and model parameters
+- **Model Parameters**: Adjust generation settings like max tokens and temperature
+- **Export Settings**: Choose between different export formats (JSON, CSV, ZIP)
+- **Appearance Settings**: Customize theme, colors, and font sizes
 
-Changes made via Lovable will be committed automatically to this repo.
+### Question Management
+- **Edit Questions**: Modify generated questions to fine-tune them
+- **Delete Questions**: Remove unwanted questions from generated sets
+- **Export to Google Sheets**: Download questions in a format compatible with Google Sheets
 
-**Use your preferred IDE**
+## Technology Stack
+- **Frontend**: React with TypeScript
+- **Styling**: Custom CSS with animations and transitions
+- **State Management**: React Hooks for local state
+- **Routing**: React Router for navigation
+- **HTTP Client**: Fetch API for backend communication
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Architecture
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend Components
+- **NavBar**: Navigation component with responsive design
+- **Dashboard**: Main landing page with statistics and activity tracking
+- **GenerateQuestions**: Core functionality for generating questions
+- **Settings**: Configuration page for app customization
+- **DynamicInputs**: Reusable component for adding/removing input fields
+- **AnimatedTextarea**: Text area with typing animation effect
+- **GenerationProgress**: Progress indicator for question generation
+- **QuestionCard**: Display component for generated questions
 
-Follow these steps:
+### Backend Integration
+The application connects to a backend service that processes question generation requests using AI models. The backend handles:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Processing input parameters from the frontend
+2. Formatting prompts for the AI model
+3. Processing AI responses into structured question formats
+4. Returning formatted questions to the frontend
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Prerequisites
+- Node.js (v14 or later)
+- NPM or Yarn package manager
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/question-generator.git
+cd question-generator
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Start the development server
+```bash
+npm run dev
+# or
+yarn dev
+```
 
-**Use GitHub Codespaces**
+4. Open your browser and navigate to `http://localhost:3000`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Usage Guide
 
-## What technologies are used for this project?
+### Generating Questions
+1. Navigate to "Generate Questions" page
+2. Select question type (General MCQs, Coding Analysis MCQs, Coding Questions)
+3. Enter subject, number of questions, topic, difficulty level, and tags
+4. Click "Generate Prompt" to preview the AI prompt
+5. Click "Generate Questions" to create questions
+6. Once generated, view, edit, or download the questions
 
-This project is built with .
+### Customizing Settings
+1. Navigate to "Settings" page
+2. Configure API connection details
+3. Adjust model parameters to control question generation
+4. Choose export format preferences
+5. Customize application appearance
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Future Enhancements
+- **User Authentication**: Multi-user support with personal question libraries
+- **Question Templates**: Save and reuse common question templates
+- **Batch Processing**: Schedule and process large question generation tasks
+- **Advanced Analytics**: Deeper insights into question quality and performance
+- **Export Formats**: Additional export options including PDF and LMS-compatible formats
 
-## How can I deploy this project?
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Simply open [Lovable](https://lovable.dev/projects/84322c50-98b7-4990-ba4e-2545accf5d91) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Acknowledgments
+- OpenAI for providing the AI models used in question generation
+- React team for the frontend library
+- All contributors who have helped improve this application
