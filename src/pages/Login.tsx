@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
+import Cookies from 'js-cookie';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -27,46 +27,62 @@ const Login = () => {
   }, []);
   
   // Handle login form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    if (username === 'Saiteja' && password === 'Saiteja@2025') {
-      // Simulate loading with animation
-      setTimeout(() => {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('username', username);
-        toast({
-          title: "Login successful!",
-          description: "Welcome to MCQ Generator",
-        });
-        navigate('/');
-      }, 1000);
-    } else {
-      setTimeout(() => {
-        toast({
-          title: "Authentication failed",
-          description: "Invalid credentials. Please try again.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-      }, 800);
+    try {
+     const response = await fetch('http://10.10.55.224:8000/api/auth/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+     });
+
+      
+        
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Authentication failed');
+      }
+      
+
+      const data = await response.json();
+
+      
+
+      // Store JWT token in cookies with 30 days expiration
+      Cookies.set('jwt_token', data.jwt_token, { expires: 30 });
+      
+      // Store authentication state
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('username', username);
+      
+      toast({
+        title: "Login successful!",
+        description: "Welcome to MCQ Generator",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
-  const handleGoogleLogin = () => {
-    setIsSubmitting(true);
-    // Simulate Google authentication
-    setTimeout(() => {
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('username', 'Saiteja');
-      toast({
-        title: "Google login successful!",
-        description: "Welcome to MCQ Generator",
-      });
-      navigate('/');
-    }, 1500);
-  };
+ 
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
@@ -171,23 +187,6 @@ const Login = () => {
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Logging in...' : 'Login'}
-          </Button>
-          
-          <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-slate-200 w-full"></div>
-            <span className="px-3 bg-white text-slate-500 text-sm">or continue with</span>
-            <div className="border-t border-slate-200 w-full"></div>
-          </div>
-          
-          <Button
-            type="button"
-            variant="outline"
-            className="neon-button-google w-full"
-            onClick={handleGoogleLogin}
-            disabled={isSubmitting}
-          >
-            <LogIn className="w-5 h-5 mr-2" />
-            Login with Google
           </Button>
         </form>
       </div>

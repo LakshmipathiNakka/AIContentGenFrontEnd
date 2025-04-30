@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,7 @@ import GenerateQuestions from "@/pages/GenerateQuestions";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
+import { ThemeProvider } from '@/components/theme/theme-provider';
 
 const queryClient = new QueryClient();
 
@@ -28,14 +28,6 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Apply theme from localStorage
-    const theme = localStorage.getItem('theme') || 'light';
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
     // Simulate app initialization
     setTimeout(() => {
       setIsLoading(false);
@@ -51,50 +43,52 @@ const App = () => {
   }
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="app-container min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={
-                <AuthRoute>
-                  <div className="flex flex-col min-h-screen">
-                    <NavBar />
-                    <main className="flex-1 py-6">
-                      <Dashboard />
-                    </main>
-                  </div>
-                </AuthRoute>
-              } />
-              <Route path="/generate" element={
-                <AuthRoute>
-                  <div className="flex flex-col min-h-screen">
-                    <NavBar />
-                    <main className="flex-1 py-6">
-                      <GenerateQuestions />
-                    </main>
-                  </div>
-                </AuthRoute>
-              } />
-              <Route path="/settings" element={
-                <AuthRoute>
-                  <div className="flex flex-col min-h-screen">
-                    <NavBar />
-                    <main className="flex-1 py-6">
-                      <Settings />
-                    </main>
-                  </div>
-                </AuthRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="app-container min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={
+                  <AuthRoute>
+                    <div className="flex flex-col min-h-screen">
+                      <NavBar />
+                      <main className="flex-1 py-6">
+                        <Dashboard />
+                      </main>
+                    </div>
+                  </AuthRoute>
+                } />
+                <Route path="/generate" element={
+                  <AuthRoute>
+                    <div className="flex flex-col min-h-screen">
+                      <NavBar />
+                      <main className="flex-1 py-6">
+                        <GenerateQuestions />
+                      </main>
+                    </div>
+                  </AuthRoute>
+                } />
+                <Route path="/settings" element={
+                  <AuthRoute>
+                    <div className="flex flex-col min-h-screen">
+                      <NavBar />
+                      <main className="flex-1 py-6">
+                        <Settings />
+                      </main>
+                    </div>
+                  </AuthRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 

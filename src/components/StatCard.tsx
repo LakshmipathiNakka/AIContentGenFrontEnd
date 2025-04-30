@@ -1,43 +1,42 @@
-
-import { ReactNode } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
   title: string;
-  value: string | number;
-  icon: ReactNode;
+  value: number | string;
+  icon: LucideIcon;
   description?: string;
   trend?: {
-    value: number;
+    value: string;
     isPositive: boolean;
   };
 }
 
-const StatCard = ({ title, value, icon, description, trend }: StatCardProps) => {
+const StatCard = ({ title, value, icon: Icon, description, trend }: StatCardProps) => {
   return (
-    <div className="stats-card">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <h4 className="text-2xl font-bold mt-1 text-slate-800">{value}</h4>
-        </div>
-        <div className="p-2 bg-mcq-light rounded-lg text-mcq-primary">
-          {icon}
-        </div>
-      </div>
-      {(description || trend) && (
-        <div className="mt-4 flex items-center">
-          {trend && (
-            <span className={`text-xs font-medium mr-2 px-2 py-0.5 rounded-full ${trend.isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {trend.isPositive ? '+' : '-'}{Math.abs(trend.value)}%
-            </span>
-          )}
-          {description && (
-            <p className="text-xs text-slate-500">{description}</p>
-          )}
-        </div>
-      )}
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && (
+          <p className="text-xs text-muted-foreground">
+            {description}
+          </p>
+        )}
+        {trend && (
+          <p className="text-xs text-muted-foreground mt-1">
+            <span className={trend.isPositive ? "text-green-500" : "text-red-500"}>
+              {trend.value}
+            </span>{" "}
+            from last month
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-export default StatCard;
+export default StatCard; 

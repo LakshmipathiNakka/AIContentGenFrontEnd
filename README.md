@@ -103,4 +103,4 @@ This project is licensed under the MIT License.
 
 ---
 
-Created with ❤️ by the MCQ Generator Team
+

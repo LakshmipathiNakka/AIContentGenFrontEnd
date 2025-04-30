@@ -1,192 +1,122 @@
-
-import { useState, useEffect } from 'react';
-import { FileCode, Code2, GraduationCap } from 'lucide-react';
-import DynamicInputs from './DynamicInputs';
-import AnimatedTextarea from './AnimatedTextarea';
-
-// Define question types
-const QUESTION_TYPES = {
-  GENERAL_MCQ: 'General MCQs',
-  CODING_ANALYSIS: 'Coding Analysis MCQs',
-  CODING_QUESTIONS: 'Coding Questions'
-};
-
-// Define subjects
-const SUBJECTS = [
-  'JavaScript', 'Python', 'Java', 'C#', 'C++', 'Go', 'Ruby', 'Swift'
-];
-
-// Sample input data
-const initialInputs = [
-  {
-    subject: "Python",
-    no_of_questions: 6,
-    topic: "abs in Built-in Functions",
-    difficulty_level_tag: "Easy",
-    topic_tag: "PYTHON_CODING_ANALYSIS",
-    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
-  },
-  {
-    subject: "Python",
-    no_of_questions: 4,
-    topic: "abs in Built-in Functions",
-    difficulty_level_tag: "Medium",
-    topic_tag: "PYTHON_CODING_ANALYSIS",
-    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
-  },
-  {
-    subject: "Python",
-    no_of_questions: 3,
-    topic: "abs in Built-in Functions",
-    difficulty_level_tag: "Hard",
-    topic_tag: "PYTHON_CODING_ANALYSIS",
-    sub_topic_tag: "ABS_IN_BUILT_IN_FUNCTIONS"
-  }
-];
-
-interface InputData {
-  subject: string;
-  no_of_questions: number;
-  topic: string;
-  difficulty_level_tag: string;
-  topic_tag: string;
-  sub_topic_tag: string;
-}
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface QuestionFormProps {
-  onGenerateStart?: (inputs: InputData[]) => void;
-  questionType: string;
-  setQuestionType: (type: string) => void;
+  onSubmit: (formData: {
+    topic: string;
+    difficulty: string;
+    count: number;
+    additionalContext: string;
+  }) => void;
+  isLoading: boolean;
 }
 
-const QuestionForm = ({ 
-  onGenerateStart, 
-  questionType, 
-  setQuestionType 
-}: QuestionFormProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [inputs, setInputs] = useState<InputData[]>(initialInputs);
-  
-  const [promptText, setPromptText] = useState('');
-  
-  // Generate a prompt based on the inputs and selected question type
-  const generatePrompt = () => {
-    let typeSuffix = "";
-    
-    switch(questionType) {
-      case QUESTION_TYPES.CODING_ANALYSIS:
-        typeSuffix = "code analysis questions";
-        break;
-      case QUESTION_TYPES.CODING_QUESTIONS:
-        typeSuffix = "coding questions";
-        break;
-      default:
-        typeSuffix = "multiple choice questions";
-    }
-    
-    const prompt = inputs.map(input => 
-      `You are a developer specializing in ${input.subject} with 20 years of experience. You need to prepare ${input.no_of_questions} ${input.difficulty_level_tag} ${typeSuffix} for the recruitment of freshers on the topic of ${input.topic} in the ${input.subject} language.`
-    ).join('\n\n');
-    
-    setPromptText(prompt);
-    return prompt;
+const QuestionForm = ({ onSubmit, isLoading }: QuestionFormProps) => {
+  const [formData, setFormData] = useState({
+    topic: '',
+    difficulty: 'medium',
+    count: 5,
+    additionalContext: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'count' ? parseInt(value) || 0 : value,
+    }));
   };
-  
-  useEffect(() => {
-    // Update prompt when question type changes
-    if (promptText) {
-      generatePrompt();
-    }
-  }, [questionType]);
-  
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      difficulty: value,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    // Generate final prompt if not already done
-    if (!promptText) {
-      generatePrompt();
-    }
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      if (onGenerateStart) {
-        onGenerateStart(inputs);
-      }
-    }, 1000);
+    onSubmit(formData);
   };
-  
+
   return (
-    <div className="question-form-card neon-card hover-glow">
-      <div className="form-header">
-        <div className="form-icon">
-          <FileCode className="icon-medium" />
-        </div>
-        <h2 className="form-title gradient-text">Generate New Questions</h2>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="animate-slide-up">
-        <div className="form-section">
-          <h3 className="section-title">
-            Question Type
-          </h3>
-          
-          <div className="question-type-selector">
-            <select
-              value={questionType}
-              onChange={(e) => setQuestionType(e.target.value)}
-              className="question-type-dropdown interactive-input"
-            >
-              {Object.values(QUESTION_TYPES).map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="form-section">
-          <h3 className="section-title">
-            Question Parameters
-          </h3>
-          
-          <DynamicInputs 
-            inputs={inputs}
-            setInputs={setInputs}
-          />
-        </div>
-        
-        <div className="form-section">
-          <div className="prompt-header">
-            <h3 className="section-title">Complete Prompt</h3>
-            <button
-              type="button" 
-              className="outline-button small button-hover-effect" 
-              onClick={generatePrompt}
-            >
-              Generate Prompt
-            </button>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Generate Questions</CardTitle>
+        <CardDescription>
+          Fill in the details below to generate multiple choice questions.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="topic">Topic</Label>
+            <Input
+              id="topic"
+              name="topic"
+              placeholder="Enter the topic for questions"
+              value={formData.topic}
+              onChange={handleChange}
+              required
+            />
           </div>
           
-          <AnimatedTextarea 
-            text={promptText}
-            onChange={setPromptText}
-            className="prompt-textarea interactive-input"
-          />
-        </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="difficulty">Difficulty</Label>
+              <Select value={formData.difficulty} onValueChange={handleSelectChange}>
+                <SelectTrigger id="difficulty">
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="count">Number of Questions</Label>
+              <Input
+                id="count"
+                name="count"
+                type="number"
+                min="1"
+                max="20"
+                value={formData.count}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="additionalContext">Additional Context (Optional)</Label>
+            <Textarea
+              id="additionalContext"
+              name="additionalContext"
+              placeholder="Add any additional context or specific requirements"
+              value={formData.additionalContext}
+              onChange={handleChange}
+              rows={4}
+            />
+          </div>
+        </CardContent>
         
-        <div className="form-actions">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="primary-button full-width neon-button"
-          >
+        <CardFooter>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Generating...' : 'Generate Questions'}
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       </form>
-    </div>
+    </Card>
   );
 };
 
-export default QuestionForm;
+export default QuestionForm; 
