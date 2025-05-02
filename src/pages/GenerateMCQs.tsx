@@ -192,6 +192,132 @@ const GenerateMCQs = () => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [showClearAllWarning, setShowClearAllWarning] = useState(false);
   const [showClearRecentWarning, setShowClearRecentWarning] = useState(false);
+  const [isPromptEditable, setIsPromptEditable] = useState(false);
+  const [tempPrompt, setTempPrompt] = useState(formData.prompt);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+
+
+
+
+  const SUBJECT_PROMPTS = {
+    'C++': ({
+      subject,
+      topic,
+      no_of_questions,
+      difficulty_level,
+      syllabus
+    }: {
+      subject: string;
+      topic: string;
+      no_of_questions: string;
+      difficulty_level: string;
+      syllabus: string;
+    }) => `
+  # C++ and Data Structures & Algorithms (DSA) Recruitment Question Creation
+  
+  You are a C++ developer specializing in ${subject} with 20 years of experience. You need to prepare ${no_of_questions} ${difficulty_level} C++ multiple-choice and algorithm analysis questions for the recruitment of freshers on the topic of ${topic} in the DSA domain.
+  
+  ---
+  
+  ## Enhanced Content Guidelines for Developing Unique and Quality C++ Content
+  
+  ### **Format:**
+  - All content must be written in Markdown format for readability and consistency.
+  - Include proper formatting for C++ code snippets using backticks (\`) to ensure clear syntax highlighting.
+  
+  ### **Code Snippets:**
+  - Use realistic and context-driven examples to make algorithms relatable to real-world scenarios.
+  - Avoid comments within the code snippets; ensure they are self-explanatory through their structure.
+  - Use meaningful variable and function names to enhance understanding and relevance.
+  - Test all algorithms for correctness and edge cases to ensure accuracy.
+  
+  ### **Answer Format:**
+  - Each question must have exactly four options, with only one correct answer.
+  - Ensure incorrect options are:
+    - **Plausible**: closely resemble the correct answer or contain common mistakes.
+    - **Diverse**: Cover a range of plausible errors or variations to avoid predictability.
+    - **Randomized**: The correct answer's position should be randomized.
+  
+  ### **Answer Explanation:**
+  - Provide a concise, yet thorough explanation (up to 100 words).
+  - Detail the role of each component, and why other options are wrong.
+  
+  ---
+  
+  ## Additional Guidelines for Unique and High-Quality Content
+  
+  1. **Variety and Creativity:**
+     - Avoid repetition, use real-world examples.
+     - Include different types: Output Prediction, Error Identification, Blank Filling, etc.
+  
+  2. **Problem Statement Design:**
+     - Ensure problems are self-contained and practical.
+  
+  3. **Clarity and Precision:**
+     - Clear, simple, and direct questions.
+  
+  4. **Difficulty Distribution:**
+     - Balanced set of easy, medium, and hard questions.
+  
+  5. **Scalability:**
+     - Modular and adaptable questions.
+  
+  6. **Error-Free Content:**
+     - Test algorithms and proofread thoroughly.
+  
+  7. **Engagement:**
+     - Include interactive or reasoning-based components.
+  
+  8. **Feedback Mechanism:**
+     - Explain both correct and incorrect answers.
+  
+  ---
+  
+  ## Reference Syllabus
+  
+  ${syllabus}
+  
+  ---
+  
+  ## Question Styles and Difficulty Levels
+  
+  ### **Easy:** Basic comprehension.
+  ### **Medium:** Debugging and tracing.
+  ### **Hard:** Advanced optimization.
+  
+  ---
+  
+  ## Question Types:
+  - Output Prediction
+  - Error Identification
+  - Blank Filling
+  - Code Debugging
+  - Time complexity
+  - Space complexity
+  
+  ---
+  
+  ## JSON Format Example:
+  
+  \`\`\`json
+  [
+    {
+      "question_text": "Sample text",
+      "code_data": "#include <iostream> ...",
+      "answer_count": 4,
+      "options": {
+        "Option A": "TRUE",
+        "Option B": "FALSE",
+        "Option C": "FALSE",
+        "Option D": "FALSE"
+      },
+      "difficulty_level": "${difficulty_level.toUpperCase()}",
+      "answer_explanation_content": "Explanation."
+    }
+  ]
+  \`\`\`
+  `
+  };
 
   useEffect(() => {
     // Load questions from localStorage on component mount
@@ -209,35 +335,53 @@ const GenerateMCQs = () => {
   }, [generatedQuestions]);
 
   useEffect(() => {
-    // Update form validity
-    const isValid = 
+    const isValid =
       formData.subject !== '' &&
       formData.topic !== '' &&
       formData.numQuestions !== '' &&
       formData.difficulty !== '' &&
       formData.syllabus !== '';
     setIsFormValid(isValid);
-
-    // Update prompt based on subject
-    if (formData.subject) {
+  
+    if (formData.subject === 'C++') {
       setFormData(prev => ({
         ...prev,
-        prompt: SUBJECT_PROMPTS[formData.subject as keyof typeof SUBJECT_PROMPTS] || ''
+        prompt: SUBJECT_PROMPTS['C++']({
+          subject: prev.subject,
+          topic: prev.topic,
+          no_of_questions: prev.numQuestions,
+          difficulty_level: prev.difficulty,
+          syllabus: prev.syllabus
+        })
       }));
     }
-  }, [formData]);
+  }, [formData.subject, formData.topic, formData.numQuestions, formData.difficulty, formData.syllabus]);
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-      ...(name === 'topic' && {
-        topicTag: value.toUpperCase().replace(/\s+/g, '_'),
+  
+    if (name === 'topic') {
+      setFormData(prev => ({
+        ...prev,
+        topic: value,
         subtopicTag: value.toUpperCase().replace(/\s+/g, '_')
-      })
-    }));
+      }));
+    } else if (name === 'topicTag') {
+      const formatted = value.toUpperCase().replace(/\s+/g, '_');
+      setFormData(prev => ({
+        ...prev,
+        topicTag: formatted
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
+  
+  
 
   const handlePromptPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text');
@@ -269,7 +413,7 @@ const GenerateMCQs = () => {
   setCurrentStep(0);
   setStepsCompleted(Array(5).fill(false));
 
-  const numQuestions = parseInt(formData.numQuestions);
+  const numQuestions = Math.ceil(parseInt(formData.numQuestions) / 2);
   const steps = 5;
   const stepDuration = 1000;
 
@@ -688,19 +832,51 @@ const GenerateMCQs = () => {
               </div>
             </div>
 
+
             <div className="mt-6">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Prompt
-              </label>
-              <Textarea
-                name="prompt"
-                value={formData.prompt}
-                onChange={handleInputChange}
-                onPaste={handlePromptPaste}
-                className="neon-input min-h-[150px] animate-pulse-slow"
-                placeholder={`Write your ${formData.subject || 'subject'} prompt here`}
-              />
-            </div>
+  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+    Prompt
+  </label>
+  <Textarea
+    name="prompt"
+    value={formData.prompt}
+    onChange={handleInputChange}
+    className="neon-input min-h-[150px]"
+    readOnly
+  />
+  <div className="mt-2 flex space-x-2">
+    <Button variant="outline" onClick={() => {
+      setTempPrompt(formData.prompt);
+      setIsPromptModalOpen(true);
+    }}>
+      Edit Prompt
+    </Button>
+  </div>
+</div>
+
+<Dialog open={isPromptModalOpen} onOpenChange={setIsPromptModalOpen}>
+  <DialogContent className="max-w-4xl">
+    <DialogHeader>
+      <DialogTitle>Edit Prompt</DialogTitle>
+    </DialogHeader>
+    <Textarea
+      value={tempPrompt}
+      onChange={(e) => setTempPrompt(e.target.value)}
+      className="h-80 font-mono"
+    />
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsPromptModalOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={() => {
+        setFormData(prev => ({ ...prev, prompt: tempPrompt }));
+        setIsPromptModalOpen(false);
+      }}>
+        Save
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
             <Button
               onClick={handleGenerate}
