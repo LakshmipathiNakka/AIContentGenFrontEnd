@@ -32,7 +32,10 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-     const response = await fetch('http://10.10.55.224:8000/api/auth/login/', {
+
+      const baseUrl = 'https://ravik00111110.pythonanywhere.com/api/auth/login/';
+
+     const response = await fetch(baseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,10 +59,13 @@ const Login = () => {
       const data = await response.json();
 
       
+      console.log("Login response:", data);
+// Assume your backend returns { access_token: "..." }
+Cookies.set('access_token', data.access, { expires: 30 });     // Short-lived token
+Cookies.set('refresh_token', data.refresh, { expires: 30 });  // Long-lived token
 
-      // Store JWT token in cookies with 30 days expiration
-      Cookies.set('jwt_token', data.jwt_token, { expires: 30 });
-      
+      console.log("🔑 Access Token:", Cookies.get('access_token'));
+      console.log("🔑 Refresh Token:", Cookies.get('refresh_token'));
       // Store authentication state
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('username', username);

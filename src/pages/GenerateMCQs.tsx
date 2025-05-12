@@ -17,128 +17,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { getAuthHeaders } from '@/utils/auth'; 
+import { fetchPromptFromAPI } from "@/utils/api"; // adjust path if needed
+import Cookies from 'js-cookie';
 
-// Python-specific mock questions
-const mockQuestions = [
-  {
-    type: "Python",
-    question: "What is the output of the following code?",
-    code: `def process_data(data):
-    result = []
-    for item in data:
-        if isinstance(item, list):
-            result.extend(item)
-        else:
-            result.append(item)
-    return result
-
-data = [1, [2, 3], 4, [5, 6]]
-print(process_data(data))`,
-    options: [
-      { id: "A", text: "[1, 2, 3, 4, 5, 6]", isCorrect: true },
-      { id: "B", text: "[1, [2, 3], 4, [5, 6]]", isCorrect: false },
-      { id: "C", text: "TypeError", isCorrect: false },
-      { id: "D", text: "[1, 2, 3, 4]", isCorrect: false }
-    ],
-    explanation: "The function flattens nested lists by extending the result list with items from nested lists and appending non-list items."
-  },
-  {
-    type: "Python",
-    question: "What will be the output of this dictionary comprehension?",
-    code: `numbers = [1, 2, 3, 4, 5]
-squares = {x: x**2 for x in numbers if x % 2 == 0}
-print(squares)`,
-    options: [
-      { id: "A", text: "{1: 1, 2: 4, 3: 9, 4: 16, 5: 25}", isCorrect: false },
-      { id: "B", text: "{2: 4, 4: 16}", isCorrect: true },
-      { id: "C", text: "[4, 16]", isCorrect: false },
-      { id: "D", text: "SyntaxError", isCorrect: false }
-    ],
-    explanation: "The dictionary comprehension creates key-value pairs only for even numbers, where the key is the number and the value is its square."
-  },
-  {
-    type: "Python",
-    question: "What is the result of this list slicing operation?",
-    code: `numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-result = numbers[1:8:2]
-print(result)`,
-    options: [
-      { id: "A", text: "[1, 3, 5, 7]", isCorrect: true },
-      { id: "B", text: "[0, 2, 4, 6, 8]", isCorrect: false },
-      { id: "C", text: "[1, 2, 3, 4, 5, 6, 7]", isCorrect: false },
-      { id: "D", text: "[0, 1, 2, 3, 4, 5, 6, 7, 8]", isCorrect: false }
-    ],
-    explanation: "The slice [1:8:2] starts at index 1, ends before index 8, and takes every second element."
-  },
-  {
-    type: "Python",
-    question: "What will be printed by this code?",
-    code: `class Animal:
-    def __init__(self, name):
-        self.name = name
-    
-    def speak(self):
-        return "Some sound"
-
-class Dog(Animal):
-    def speak(self):
-        return "Woof!"
-
-dog = Dog("Buddy")
-print(dog.speak())`,
-    options: [
-      { id: "A", text: "Some sound", isCorrect: false },
-      { id: "B", text: "Woof!", isCorrect: true },
-      { id: "C", text: "None", isCorrect: false },
-      { id: "D", text: "Error", isCorrect: false }
-    ],
-    explanation: "The Dog class overrides the speak method from the Animal class, so calling speak() on a Dog instance returns 'Woof!'."
-  },
-  {
-    type: "Python",
-    question: "What is the output of this generator expression?",
-    code: `numbers = (x for x in range(10) if x % 3 == 0)
-print(list(numbers))`,
-    options: [
-      { id: "A", text: "[0, 3, 6, 9]", isCorrect: true },
-      { id: "B", text: "[1, 2, 3, 4, 5, 6, 7, 8, 9]", isCorrect: false },
-      { id: "C", text: "[3, 6, 9]", isCorrect: false },
-      { id: "D", text: "TypeError", isCorrect: false }
-    ],
-    explanation: "The generator expression creates numbers from 0 to 9 that are divisible by 3."
-  }
-];
-
-const generateMockQuestion = (index: number) => {
-  const question = mockQuestions[index % mockQuestions.length];
-  return {
-    question_id: uuidv4(),
-    question_type: "CODE_ANALYSIS_MULTIPLE_CHOICE",
-    short_text: `${question.type} Question ${index + 1}`,
-    question_text: question.question,
-    question_key: index,
-    content_type: "HTML",
-    multimedia_count: 0,
-    multimedia_format: "",
-    multimedia_url: "",
-    thumbnail_url: "",
-    tag_names: [
-      "POOL_1",
-      `TOPIC_${question.type.toUpperCase()}_CODING_ANALYSIS`,
-      "SUB_TOPIC_CODING_ANALYSIS",
-      "DIFFICULTY_MEDIUM",
-      "SOURCE_GPT",
-      "IN_OFFLINE_EXAM",
-      "COMPANY_UNKNOWN"
-    ],
-    options: question.options,
-    code_data: question.code,
-    code_language: "PYTHON39",
-    explanation: question.explanation,
-    explanation_content_type: "MARKDOWN",
-    toughness: "MEDIUM"
-  };
-};
 
 const SUBJECTS = [
   { value: 'C++', label: 'C++' },
@@ -149,14 +31,16 @@ const SUBJECTS = [
   { value: 'SQL', label: 'SQL' }
 ];
 
-const SUBJECT_PROMPTS = {
-  'C++': 'Generate C++ questions focusing on OOP concepts, memory management, and STL.',
-  'Python': 'Generate Python questions covering data structures, algorithms, and Pythonic concepts.',
-  'Java': 'Generate Java questions about OOP principles, collections framework, and multithreading.',
-  'C': 'Generate C questions focusing on pointers, memory management, and low-level programming.',
-  'JavaScript': 'Generate JavaScript questions about ES6+ features, DOM manipulation, and async programming.',
-  'SQL': 'Generate SQL questions covering database design, queries, and optimization techniques.'
+const SUBJECT_PROMPT_MAP = {
+  "C++": "ca_mcq_cpp",
+  "Python": "ca_mcq_python",
+  "Java": "ca_mcq_java",
+  "C": "ca_mcq_c",
+  "JavaScript": "ca_mcq_javascript",
+  "SQL": "ca_mcq_sql"
 };
+
+
 
 const DIFFICULTY_COLORS = {
   Easy: 'text-green-500',
@@ -164,7 +48,12 @@ const DIFFICULTY_COLORS = {
   Hard: 'text-red-500'
 };
 
+
+
+
+
 const GenerateMCQs = () => {
+  
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('CA MCQs');
   const [formData, setFormData] = useState({
@@ -177,6 +66,7 @@ const GenerateMCQs = () => {
     prompt: '',
     syllabus: ''
   });
+  const [stepsCompleted, setStepsCompleted] = useState<boolean[]>([false, false, false, false, false]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
@@ -188,7 +78,6 @@ const GenerateMCQs = () => {
   const [editingOption, setEditingOption] = useState<{ questionId: string; optionId: string } | null>(null);
   const [optionEditText, setOptionEditText] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [stepsCompleted, setStepsCompleted] = useState<boolean[]>([]);
   const [isFormValid, setIsFormValid] = useState(false);
   const [showClearAllWarning, setShowClearAllWarning] = useState(false);
   const [showClearRecentWarning, setShowClearRecentWarning] = useState(false);
@@ -196,128 +85,10 @@ const GenerateMCQs = () => {
   const [tempPrompt, setTempPrompt] = useState(formData.prompt);
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
+ 
 
 
 
-  const SUBJECT_PROMPTS = {
-    'C++': ({
-      subject,
-      topic,
-      no_of_questions,
-      difficulty_level,
-      syllabus
-    }: {
-      subject: string;
-      topic: string;
-      no_of_questions: string;
-      difficulty_level: string;
-      syllabus: string;
-    }) => `
-  # C++ and Data Structures & Algorithms (DSA) Recruitment Question Creation
-  
-  You are a C++ developer specializing in ${subject} with 20 years of experience. You need to prepare ${no_of_questions} ${difficulty_level} C++ multiple-choice and algorithm analysis questions for the recruitment of freshers on the topic of ${topic} in the DSA domain.
-  
-  ---
-  
-  ## Enhanced Content Guidelines for Developing Unique and Quality C++ Content
-  
-  ### **Format:**
-  - All content must be written in Markdown format for readability and consistency.
-  - Include proper formatting for C++ code snippets using backticks (\`) to ensure clear syntax highlighting.
-  
-  ### **Code Snippets:**
-  - Use realistic and context-driven examples to make algorithms relatable to real-world scenarios.
-  - Avoid comments within the code snippets; ensure they are self-explanatory through their structure.
-  - Use meaningful variable and function names to enhance understanding and relevance.
-  - Test all algorithms for correctness and edge cases to ensure accuracy.
-  
-  ### **Answer Format:**
-  - Each question must have exactly four options, with only one correct answer.
-  - Ensure incorrect options are:
-    - **Plausible**: closely resemble the correct answer or contain common mistakes.
-    - **Diverse**: Cover a range of plausible errors or variations to avoid predictability.
-    - **Randomized**: The correct answer's position should be randomized.
-  
-  ### **Answer Explanation:**
-  - Provide a concise, yet thorough explanation (up to 100 words).
-  - Detail the role of each component, and why other options are wrong.
-  
-  ---
-  
-  ## Additional Guidelines for Unique and High-Quality Content
-  
-  1. **Variety and Creativity:**
-     - Avoid repetition, use real-world examples.
-     - Include different types: Output Prediction, Error Identification, Blank Filling, etc.
-  
-  2. **Problem Statement Design:**
-     - Ensure problems are self-contained and practical.
-  
-  3. **Clarity and Precision:**
-     - Clear, simple, and direct questions.
-  
-  4. **Difficulty Distribution:**
-     - Balanced set of easy, medium, and hard questions.
-  
-  5. **Scalability:**
-     - Modular and adaptable questions.
-  
-  6. **Error-Free Content:**
-     - Test algorithms and proofread thoroughly.
-  
-  7. **Engagement:**
-     - Include interactive or reasoning-based components.
-  
-  8. **Feedback Mechanism:**
-     - Explain both correct and incorrect answers.
-  
-  ---
-  
-  ## Reference Syllabus
-  
-  ${syllabus}
-  
-  ---
-  
-  ## Question Styles and Difficulty Levels
-  
-  ### **Easy:** Basic comprehension.
-  ### **Medium:** Debugging and tracing.
-  ### **Hard:** Advanced optimization.
-  
-  ---
-  
-  ## Question Types:
-  - Output Prediction
-  - Error Identification
-  - Blank Filling
-  - Code Debugging
-  - Time complexity
-  - Space complexity
-  
-  ---
-  
-  ## JSON Format Example:
-  
-  \`\`\`json
-  [
-    {
-      "question_text": "Sample text",
-      "code_data": "#include <iostream> ...",
-      "answer_count": 4,
-      "options": {
-        "Option A": "TRUE",
-        "Option B": "FALSE",
-        "Option C": "FALSE",
-        "Option D": "FALSE"
-      },
-      "difficulty_level": "${difficulty_level.toUpperCase()}",
-      "answer_explanation_content": "Explanation."
-    }
-  ]
-  \`\`\`
-  `
-  };
 
   useEffect(() => {
     // Load questions from localStorage on component mount
@@ -334,33 +105,62 @@ const GenerateMCQs = () => {
     }
   }, [generatedQuestions]);
 
+
   useEffect(() => {
+    // Validate if all required fields are filled
     const isValid =
       formData.subject !== '' &&
       formData.topic !== '' &&
       formData.numQuestions !== '' &&
       formData.difficulty !== '' &&
       formData.syllabus !== '';
-    setIsFormValid(isValid);
+      
+    setIsFormValid(isValid);  // Update the form validity state
   
-    if (formData.subject === 'C++') {
-      setFormData(prev => ({
-        ...prev,
-        prompt: SUBJECT_PROMPTS['C++']({
-          subject: prev.subject,
-          topic: prev.topic,
-          no_of_questions: prev.numQuestions,
-          difficulty_level: prev.difficulty,
-          syllabus: prev.syllabus
-        })
-      }));
+    // Proceed with loading the prompt only if the form is valid
+    if (isValid) {
+      const loadPrompt = async () => {
+        if (formData.subject) {
+          // Get the corresponding prompt key based on selected subject
+          const promptKey = SUBJECT_PROMPT_MAP[formData.subject];
+          
+          if (promptKey) {
+            try {
+              const rawPrompt = await fetchPromptFromAPI(promptKey);
+              console.log("Fetched Prompt for", formData.subject, ":", rawPrompt);
+  
+              if (rawPrompt) {
+                // Replace placeholders with formData values
+                const filledPrompt = rawPrompt
+                  .replace(/{{subject}}/gi, formData.subject) 
+                  .replace(/{{no_of_questions}}/gi, formData.numQuestions)
+                  .replace(/{{difficulty_level}}/gi, formData.difficulty)
+                  .replace(/{{topic}}/gi, formData.topic)
+                  .replace(/{{syllabus}}/gi, formData.syllabus);
+  
+                // Update formData with the filled prompt
+                setFormData(prev => ({
+                  ...prev,
+                  prompt: filledPrompt
+                }));
+              }
+            } catch (err) {
+              console.error("Error fetching prompt:", err);
+            }
+          }
+        }
+      };
+  
+      loadPrompt();
     }
-  }, [formData.subject, formData.topic, formData.numQuestions, formData.difficulty, formData.syllabus]);
+  
+  }, [formData.subject, formData.numQuestions, formData.difficulty, formData.topic, formData.syllabus]); 
   
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-  
+
     if (name === 'topic') {
       setFormData(prev => ({
         ...prev,
@@ -380,6 +180,26 @@ const GenerateMCQs = () => {
       }));
     }
   };
+
+
+
+  const getDifficultyCounts = () => {
+    const counts = { EASY: 0, MEDIUM: 0, HARD: 0, TOTAL: generatedQuestions.length };
+    
+    // Loop through the generated questions to count difficulty levels
+    generatedQuestions.forEach((q) => {
+      // Ensure difficulty is in the correct format (string or mapped)
+      const level = (q.difficulty_level?.toUpperCase());
+      
+      if (level && counts.hasOwnProperty(level)) {
+        counts[level]++;
+      }
+    });
+
+    return counts;
+  };
+  
+  
   
   
 
@@ -407,44 +227,101 @@ const GenerateMCQs = () => {
     }
   };
 
- const handleGenerate = () => {
-  setIsGenerating(true);
-  setGenerationProgress(0);
-  setCurrentStep(0);
-  setStepsCompleted(Array(5).fill(false));
+  const jwt_Token = Cookies.get('access_token');
+  console.log("here JWT Token:", jwt_Token);
 
-  const numQuestions = Math.ceil(parseInt(formData.numQuestions) / 2);
-  const steps = 5;
-  const stepDuration = 1000;
-
-  const interval = setInterval(() => {
-    setGenerationProgress(prev => {
-      const newProgress = prev + (100 / steps);
-      if (newProgress >= 100) {
-        clearInterval(interval);
-        setIsGenerating(false);
-        // Generate exactly the number of questions requested
-        const newQuestions = Array(numQuestions)
-          .fill(null)
-          .map((_, index) => generateMockQuestion(index));
-        setGeneratedQuestions(prev => [...prev, ...newQuestions]);
-        return 100;
-      }
-      return newProgress;
-    });
-  }, stepDuration);
-
-  for (let i = 0; i < steps; i++) {
-    setTimeout(() => {
-      setCurrentStep(i + 1);
-      setStepsCompleted(prev => {
-        const newSteps = [...prev];
-        newSteps[i] = true;
-        return newSteps;
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setGenerationProgress(0);  // Reset the progress
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch("https://ravik00111110.pythonanywhere.com/api/content-gen/generate/", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          prompt: formData.prompt,
+          difficulty: formData.difficulty.toLowerCase(),
+          question_type: "MCQ",
+          topic: formData.subject.toUpperCase(),
+          subtopic: formData.topic.toUpperCase(),
+          number_of_question: formData.numQuestions
+        })
       });
-    }, i * stepDuration);
-  }
-};
+  
+      const data = await response.json();
+      console.log("📦 Response status:", response.status);
+      console.log("📨 Raw response data:", data);
+
+
+    
+  
+      if (!response.ok) {
+        throw new Error(data.detail || "Unauthorized request.");
+      }
+  
+      if (!data.message) {
+        throw new Error("Missing 'message' in API response");
+      }
+  
+      const jsonStart = data.message.indexOf("[");
+      const jsonEnd = data.message.lastIndexOf("]") + 1;
+      const jsonString = data.message.slice(jsonStart, jsonEnd);
+  
+      // Map difficulty levels here
+      const parsedQuestions = JSON.parse(jsonString).map((q, index) => {
+        const optionsArray = Object.entries(q.options).map(([text, correctness], i) => ({
+          id: String.fromCharCode(65 + i),
+          text,
+          isCorrect: correctness === "TRUE"
+        }));
+  
+        // Map the difficulty level (assuming it is numeric)
+        const difficultyLevel = (q.difficulty_level);  // Map numeric value to string
+  
+        return {
+          ...q,
+          question_id: uuidv4(),
+          question_type: "CODE_ANALYSIS_MULTIPLE_CHOICE",
+          short_text: `${formData.subject} Question ${index + 1}`,
+          question_key: index,
+          content_type: "HTML",
+          tag_names: [
+            "POOL_1",
+            `TOPIC_${formData.topic.toUpperCase().replace(/\s+/g, "_")}_CODING_ANALYSIS`,
+            `SUB_TOPIC_CODING_ANALYSIS`,
+            `DIFFICULTY_${formData.difficulty.toUpperCase()}`,
+            "SOURCE_GPT",
+            "IN_OFFLINE_EXAM",
+            "COMPANY_UNKNOWN"
+          ],
+          code_data: q.code_data,
+          code_language: formData.subject.toUpperCase(),
+          explanation: q.answer_explanation_content,
+          explanation_content_type: "MARKDOWN",
+          toughness: formData.difficulty.toUpperCase(),
+          options: optionsArray,
+          difficulty_level: difficultyLevel,  // Set mapped difficulty level
+        };
+      });
+  
+      setGeneratedQuestions(prev => [...prev, ...parsedQuestions]);
+    } catch (err) {
+      console.error("❌ Generation error:", err);
+      toast({
+        title: "Generation Failed",
+        description: err instanceof Error ? err.message : "Unknown error.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  
+  
+  
+  
+  
 
 
   const handleEditQuestion = (question: any) => {
@@ -627,6 +504,17 @@ const GenerateMCQs = () => {
       setShowClearRecentWarning(true);
     }
   };
+
+
+// Update this state in your steps progress as per API response
+const updateStepProgress = (step: number) => {
+  setStepsCompleted(prev => {
+    const updated = [...prev];
+    updated[step] = true;
+    return updated;
+  });
+};
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -833,26 +721,32 @@ const GenerateMCQs = () => {
             </div>
 
 
-            <div className="mt-6">
-  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-    Prompt
-  </label>
-  <Textarea
-    name="prompt"
-    value={formData.prompt}
-    onChange={handleInputChange}
-    className="neon-input min-h-[150px]"
-    readOnly
-  />
-  <div className="mt-2 flex space-x-2">
-    <Button variant="outline" onClick={() => {
-      setTempPrompt(formData.prompt);
-      setIsPromptModalOpen(true);
-    }}>
-      Edit Prompt
-    </Button>
+    
+  <div className="mt-6">
+    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+      Prompt
+    </label>
+    <Textarea
+  name="prompt"
+  value={formData.prompt}
+  onChange={handleInputChange}
+  className={`neon-input min-h-[150px] ${!isFormValid ? 'opacity-50 ' : ''}`}
+  readOnly
+/>
+
+    
+
+    <div className="mt-2 flex space-x-2">
+      <Button variant="outline" onClick={() => {
+        setTempPrompt(formData.prompt);
+        setIsPromptModalOpen(true);
+      }}>
+        Edit Prompt
+      </Button>
+    </div>
   </div>
-</div>
+
+
 
 <Dialog open={isPromptModalOpen} onOpenChange={setIsPromptModalOpen}>
   <DialogContent className="max-w-4xl">
@@ -878,57 +772,62 @@ const GenerateMCQs = () => {
   </DialogContent>
 </Dialog>
 
-            <Button
-              onClick={handleGenerate}
-              className="w-full mt-6 neon-button"
-              disabled={!isFormValid || isGenerating}
-            >
-              {isGenerating ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Questions
-                </div>
-              )}
-            </Button>
+<Button
+      onClick={handleGenerate}
+      className="w-full neon-button"
+      disabled={!isFormValid || isGenerating}
+    >
+      {isGenerating ? (
+        <div className="flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+          >
+            <Loader2 className="h-6 w-6 text-blue-500" />
+          </motion.div>
+          <span className="ml-2">Generating...</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center">
+          <Sparkles className="h-4 w-4 mr-2" />
+          Generate Questions
+        </div>
+      )}
+    </Button>
 
-            {isGenerating && (
-              <div className="mt-4">
-                <div className="flex justify-between items-center mb-4">
-                  {Array(5).fill(null).map((_, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ 
-                        scale: stepsCompleted[index] ? 1 : 0.8,
-                        opacity: stepsCompleted[index] ? 1 : 0.5
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className="flex flex-col items-center"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-2">
-                        {stepsCompleted[index] ? (
-                          <Check className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <span className="text-slate-500 dark:text-slate-400">{index + 1}</span>
-                        )}
-                      </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Step {index + 1}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-                <Progress value={generationProgress} className="h-2" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center">
-                  {currentStep > 0 ? `Step ${currentStep} of 5: ${getStepDescription(currentStep)}` : 'Starting...'}
-                </p>
+    {isGenerating && (
+      <div className="mt-4">
+        <div className="flex justify-between items-center mb-4">
+          {stepsCompleted.map((completed, index) => (
+            <motion.div
+              key={index}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ 
+                scale: completed ? 1 : 0.8,
+                opacity: completed ? 1 : 0.5 
+              }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center"
+            >
+              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-2">
+                {completed ? (
+                  <Check className="h-5 w-5 text-green-500" />
+                ) : (
+                  <span className="text-slate-500 dark:text-slate-400">{index + 1}</span>
+                )}
               </div>
-            )}
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Step {index + 1}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+        <Progress value={generationProgress} className="h-2" />
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center">
+          {currentStep > 0 ? `Step ${currentStep} of 5: ${getStepDescription(currentStep)}` : 'Starting...'}
+        </p>
+      </div>
+    )}
           </div>
 
           {generatedQuestions.length > 0 && (
@@ -999,178 +898,235 @@ const GenerateMCQs = () => {
                 exit={{ opacity: 0, y: -20 }}
                 className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 neon-card"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-                    Generated Questions
-                  </h2>
-                  <Button
-                    onClick={handleDownloadSheet}
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Google Sheet
-                  </Button>
-                </div>
+                                          <div className="flex justify-between items-center mb-6">
+                            <div>
+                              <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
+                                Generated Questions
+                              </h2>
+                              <div className="mt-1 space-x-2 text-sm">
+                                {(() => {
+                                  const { EASY, MEDIUM, HARD, TOTAL } = getDifficultyCounts();
+                                  return (
+                                    <>
+                                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                                        Easy: {EASY}
+                                      </span>
+                                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                        Medium: {MEDIUM}
+                                      </span>
+                                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                                        Hard: {HARD}
+                                      </span>
 
-                <div className="space-y-6">
-                  {generatedQuestions.map((question, index) => (
-                    <motion.div
-                      key={question.question_id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Card className="p-6 bg-slate-50 dark:bg-slate-700/50 hover:shadow-lg transition-shadow duration-300">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="font-medium text-slate-800 dark:text-white">
-                              Question {index + 1}
-                            </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {question.short_text}
-                            </p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                              ID: {question.question_id}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditQuestion(question)}
-                              className="hover-scale"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyQuestion(question.question_id)}
-                              className="hover-scale"
-                            >
-                              {copiedQuestionId === question.question_id ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteQuestion(question.question_id)}
-                              className="hover-scale"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                                      <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded">
+                                          Total: {TOTAL}
+                                      </span>
 
-                        <div className="prose dark:prose-invert max-w-none">
-                          <p className="text-slate-800 dark:text-slate-200">
-                            {question.question_text}
-                          </p>
-                          {question.code_data && (
-                            <div className="relative">
-                              <pre className="bg-slate-100 dark:bg-slate-600 p-4 rounded-lg mt-2 overflow-x-auto">
-                                <code className="language-python">
-                                  {highlightCode(question.code_data)}
-                                </code>
-                              </pre>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+
                               <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCopyCode(question.code_data)}
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={handleDownloadSheet}
+                                className="bg-green-500 hover:bg-green-600 text-white"
                               >
-                                <Copy className="h-4 w-4" />
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Google Sheet
                               </Button>
                             </div>
-                          )}
-                        </div>
 
-                        <div className="mt-6">
-                          <RadioGroup
-                            value={selectedAnswers[question.question_id]}
-                            onValueChange={(value) => handleAnswerSelect(question.question_id, value)}
-                            className="space-y-2"
-                          >
-                            {question.options.map((option: any) => (
-                              <motion.div
-                                key={option.id}
-                                className={cn(
-                                  "flex items-center space-x-2 p-3 rounded-lg transition-colors",
-                                  getOptionColor(question.question_id, option.id)
-                                )}
-                              >
-                                {editingOption?.questionId === question.question_id && 
-                                 editingOption?.optionId === option.id ? (
-                                  <div className="flex-1 flex items-center space-x-2">
-                                    <Input
-                                      value={optionEditText}
-                                      onChange={(e) => setOptionEditText(e.target.value)}
-                                      className="flex-1"
-                                    />
-                                    <Button
-                                      size="sm"
-                                      onClick={handleSaveOption}
-                                      className="bg-green-500 hover:bg-green-600"
-                                    >
-                                      <Save className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => setEditingOption(null)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <RadioGroupItem 
-                                      value={option.id} 
-                                      id={`${question.question_id}-${option.id}`} 
-                                    />
-                                    <Label 
-                                      htmlFor={`${question.question_id}-${option.id}`} 
-                                      className="cursor-pointer flex-1"
-                                    >
-                                      {option.text}
-                                    </Label>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEditOption(question.question_id, option.id, option.text)}
-                                      className="opacity-100"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </motion.div>
-                            ))}
-                          </RadioGroup>
-                        </div>
 
-                        {showAnswers[question.question_id] && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            transition={{ duration: 0.3 }}
-                            className="mt-4 p-4 bg-slate-100 dark:bg-slate-600 rounded-lg"
-                          >
-                            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                              Explanation
-                            </h4>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              {question.explanation}
-                            </p>
-                          </motion.div>
-                        )}
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
+                            <div className="space-y-6">
+  {generatedQuestions.map((question, index) => {
+    console.log("Question Difficulty Level: ", question.difficulty_level); // Debugging line
+    
+    return (
+      <motion.div
+        key={question.question_id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+      >
+        <Card className="p-6 bg-slate-50 dark:bg-slate-700/50 hover:shadow-lg transition-shadow duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="font-medium text-slate-800 dark:text-white">
+                Question {index + 1}
+              </h3>
+
+              {/* Difficulty Level Display */}
+              {question.difficulty_level && (
+                <span
+                  className="inline-block px-2 py-0.5 mt-1 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor:
+                      question.difficulty_level === "EASY"
+                        ? "#d1fae5" // green bg
+                        : question.difficulty_level === "MEDIUM"
+                        ? "#fef3c7" // yellow bg
+                        : "#fee2e2", // red bg
+                    color:
+                      question.difficulty_level === "EASY"
+                        ? "#065f46" // green text
+                        : question.difficulty_level === "MEDIUM"
+                        ? "#92400e" // yellow text
+                        : "#991b1b" // red text
+                  }}
+                >
+                  {question.difficulty_level} {/* Display the difficulty */}
+                </span>
+              )}
+
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {question.short_text}
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                ID: {question.question_id}
+              </p>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEditQuestion(question)}
+                className="hover-scale"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopyQuestion(question.question_id)}
+                className="hover-scale"
+              >
+                {copiedQuestionId === question.question_id ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteQuestion(question.question_id)}
+                className="hover-scale"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="prose dark:prose-invert max-w-none">
+            <p className="text-slate-800 dark:text-slate-200">
+              {question.question_text}
+            </p>
+            {question.code_data && (
+              <div className="relative">
+                <pre className="bg-slate-100 dark:bg-slate-600 p-4 rounded-lg mt-2 overflow-x-auto">
+                  <code className="language-python">
+                    {highlightCode(question.code_data)}
+                  </code>
+                </pre>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyCode(question.code_data)}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <RadioGroup
+              value={selectedAnswers[question.question_id]}
+              onValueChange={(value) => handleAnswerSelect(question.question_id, value)}
+              className="space-y-2"
+            >
+              {question.options.map((option: any) => (
+                <motion.div
+                  key={option.id}
+                  className={cn(
+                    "flex items-center space-x-2 p-3 rounded-lg transition-colors",
+                    getOptionColor(question.question_id, option.id)
+                  )}
+                >
+                  {editingOption?.questionId === question.question_id && 
+                   editingOption?.optionId === option.id ? (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <Input
+                        value={optionEditText}
+                        onChange={(e) => setOptionEditText(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSaveOption}
+                        className="bg-green-500 hover:bg-green-600"
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingOption(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <RadioGroupItem 
+                        value={option.id} 
+                        id={`${question.question_id}-${option.id}`} 
+                      />
+                      <Label 
+                        htmlFor={`${question.question_id}-${option.id}`} 
+                        className="cursor-pointer flex-1"
+                      >
+                        {option.text}
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditOption(question.question_id, option.id, option.text)}
+                        className="opacity-100"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </motion.div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {showAnswers[question.question_id] && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 p-4 bg-slate-100 dark:bg-slate-600 rounded-lg"
+            >
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Explanation
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {question.explanation}
+              </p>
+            </motion.div>
+          )}
+        </Card>
+      </motion.div>
+    );
+  })}
+</div>
+
               </motion.div>
             )}
           </AnimatePresence>

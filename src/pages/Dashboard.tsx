@@ -155,7 +155,7 @@ const Dashboard = () => {
             </div>
             <div className="distribution-item">
               <div className="distribution-header">
-                <div className="distribution-label dark:text-white">C#</div>
+                <div className="distribution-label dark:text-white">C++</div>
                 <div className="distribution-value dark:text-white">10%</div>
               </div>
               <div className="progress-bar-bg">
