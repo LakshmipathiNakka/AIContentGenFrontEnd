@@ -21,8 +21,8 @@ export const formatQuestionsForSheets = (questions) => {
   return [headers, ...rows];
 };
 
-// Function to create and populate a Google Sheet
-export const createGoogleSheet = async (questions, title = 'Generated Questions') => {
+// Function to update an existing Google Sheet
+export const updateGoogleSheet = async (questions, sheetId) => {
   try {
     // Initialize the Google API client
     const auth = new google.auth.GoogleAuth({
@@ -35,25 +35,13 @@ export const createGoogleSheet = async (questions, title = 'Generated Questions'
 
     const client = await auth.getClient();
 
-    // Create a new spreadsheet
-    const spreadsheet = await sheets.spreadsheets.create({
-      auth: client,
-      requestBody: {
-        properties: {
-          title,
-        },
-      },
-    });
-
-    const spreadsheetId = spreadsheet.data.spreadsheetId;
-
     // Format the data
     const values = formatQuestionsForSheets(questions);
 
     // Update the spreadsheet with the questions data
     await sheets.spreadsheets.values.update({
       auth: client,
-      spreadsheetId,
+      spreadsheetId: sheetId,
       range: 'A1',
       valueInputOption: 'RAW',
       requestBody: {
@@ -61,10 +49,10 @@ export const createGoogleSheet = async (questions, title = 'Generated Questions'
       },
     });
 
-    // Format the spreadsheet
+    // Format the spreadsheet (e.g., bold the header row and auto-resize columns)
     await sheets.spreadsheets.batchUpdate({
       auth: client,
-      spreadsheetId,
+      spreadsheetId: sheetId,
       requestBody: {
         requests: [
           {
@@ -101,9 +89,11 @@ export const createGoogleSheet = async (questions, title = 'Generated Questions'
       },
     });
 
-    return spreadsheet.data.spreadsheetUrl;
+    // Return the URL for the Google Sheet
+    const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit?gid=0`;
+    return spreadsheetUrl;
   } catch (error) {
-    console.error('Error creating Google Sheet:', error);
+    console.error('Error updating Google Sheet:', error);
     throw error;
   }
-}; 
+};

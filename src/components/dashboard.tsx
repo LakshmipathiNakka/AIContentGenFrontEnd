@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, ArrowDownRight, Users, DollarSign, Activity, CreditCard } from "lucide-react";
 
+
 interface DashboardProps {
   totalUsers: number;
   totalRevenue: number;

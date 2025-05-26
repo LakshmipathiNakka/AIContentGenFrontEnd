@@ -48,6 +48,15 @@ const DIFFICULTY_COLORS = {
   Hard: 'text-red-500'
 };
 
+const steps = [
+  "Step 1: Analyzing Input Parameters",
+  "Step 2: Generating Question Templates",
+  "Step 3: Creating Code Snippets",
+  "Step 4: Formulating Options",
+  "Step 5: Finalizing Questions",
+];
+
+
 
 
 
@@ -86,8 +95,6 @@ const GenerateMCQs = () => {
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
  
-
-
 
 
   useEffect(() => {
@@ -136,7 +143,7 @@ const GenerateMCQs = () => {
                   .replace(/{{no_of_questions}}/gi, formData.numQuestions)
                   .replace(/{{difficulty_level}}/gi, formData.difficulty)
                   .replace(/{{topic}}/gi, formData.topic)
-                  .replace(/{{syllabus}}/gi, formData.syllabus);
+                  .replace(/{{syllabus_details}}/gi, formData.syllabus);
   
                 // Update formData with the filled prompt
                 setFormData(prev => ({
@@ -158,10 +165,21 @@ const GenerateMCQs = () => {
   
 
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
-    if (name === 'topic') {
+  
+    // Update form data based on the field being updated
+    if (name === 'syllabus') {
+      // Update the syllabus field and dynamically replace the placeholder in the prompt
+      setFormData(prev => {
+        const updatedPrompt = prev.prompt.replace(/{{syllabus_details}}/g, value);
+        return {
+          ...prev,
+          syllabus: value,
+          prompt: updatedPrompt  // Ensure the prompt gets updated with the new syllabus value
+        };
+      });
+    } else if (name === 'topic') {
       setFormData(prev => ({
         ...prev,
         topic: value,
@@ -180,24 +198,25 @@ const GenerateMCQs = () => {
       }));
     }
   };
+  
+  
 
 
 
   const getDifficultyCounts = () => {
     const counts = { EASY: 0, MEDIUM: 0, HARD: 0, TOTAL: generatedQuestions.length };
-    
-    // Loop through the generated questions to count difficulty levels
+  
     generatedQuestions.forEach((q) => {
-      // Ensure difficulty is in the correct format (string or mapped)
-      const level = (q.difficulty_level?.toUpperCase());
-      
+      const level = q.difficulty_level ? String(q.difficulty_level).toUpperCase() : null;
+  
       if (level && counts.hasOwnProperty(level)) {
         counts[level]++;
       }
     });
-
+  
     return counts;
   };
+  
   
   
   
@@ -230,92 +249,232 @@ const GenerateMCQs = () => {
   const jwt_Token = Cookies.get('access_token');
   console.log("here JWT Token:", jwt_Token);
 
+  const handleDownloadJSON = () => {
+    if (!generatedQuestions || generatedQuestions.length === 0) {
+      toast({
+        title: "No Questions to Download",
+        description: "There are no questions available for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    // Format generatedQuestions to match the structure you provided
+    const formattedQuestions = generatedQuestions.map((q) => {
+      // Extract correct and wrong answers based on options
+      const correctOptions = q.options.filter((option: any) => option.isCorrect).map((option: any) => option.text);
+      const wrongOptions = q.options.filter((option: any) => !option.isCorrect).map((option: any) => option.text);
+  
+      return {
+        question_key: q.question_key || "0",
+        skills: [],  // Assuming skills are an empty array (you can populate it as per requirement)
+        toughness: q.toughness || "EASY",
+        short_text: "",  // Empty short text
+        question_type: q.question_type || "CODE_ANALYSIS_MULTIPLE_CHOICE",
+        explanation_for_answer: {
+          content: q.explanation || "Explanation not available.",
+          content_type: "MARKDOWN",
+        },
+        question_text: q.question_text || "Question text missing",
+        multimedia: [],  // Assuming multimedia is empty
+        content_type: "HTML",
+        tag_names: [
+          "POOL_1",
+          q.topicTag || "UNKNOWN",
+          q.subtopicTag  || "UNKNOWN",
+          `DIFFICULTY_${q.difficulty_level || "EASY"}`,
+          "SOURCE_GPT",
+          "IN_OFFLINE_EXAM",
+          "COMPANY_UNKNOWN",
+          q.question_id || uuidv4(), // Add the question ID as tag
+        ],
+        input_output: [
+          {
+            input: q.input || "",
+            question_id: q.question_id || uuidv4(),
+            wrong_answers: wrongOptions,  // Use the wrong options dynamically
+            output: correctOptions,  // Use the correct options dynamically
+          }
+        ],
+        code_metadata: [
+          {
+            is_editable: false,
+            language: q.language || "CPP",  // You can add logic for dynamic language selection
+            code_data: q.code_data || "Code not provided",
+            default_code: true,
+          }
+        ],
+      };
+    });
+  
+    // Convert formatted questions to JSON string
+    const jsonContent = JSON.stringify(formattedQuestions, null, 2);  // Pretty print with 2 spaces for indentation
+  
+    // Create a Blob with the JSON content
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+  
+    // Create a temporary link element and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'generated_questions.json';  // Ensure the file is named with a .json extension
+    document.body.appendChild(a);  // Append the link to the body
+    a.click();  // Trigger the download
+    document.body.removeChild(a);  // Remove the link from the body
+    window.URL.revokeObjectURL(url);  // Revoke the URL to free up memory
+  
+    toast({
+      title: "Download Started",
+      description: "Your questions have been downloaded as a JSON file",
+    });
+  };
+  
+  
+  
+  
+  
+  
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);  // Reset the progress
+
+    setCurrentStep(0); // Start from the first step
+    setStepsCompleted([false, false, false, false, false]); // Reset steps completion state
+
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch("https://ravik00111110.pythonanywhere.com/api/content-gen/generate/", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          prompt: formData.prompt,
-          difficulty: formData.difficulty.toLowerCase(),
-          question_type: "MCQ",
-          topic: formData.subject.toUpperCase(),
-          subtopic: formData.topic.toUpperCase(),
-          number_of_question: formData.numQuestions
-        })
-      });
-  
-      const data = await response.json();
-      console.log("📦 Response status:", response.status);
-      console.log("📨 Raw response data:", data);
+        // Get the auth headers (this will ensure the token is refreshed if expired)
+        const headers = await getAuthHeaders();
 
+        // Step 1: Start analyzing input parameters
+        setStepsCompleted(prev => {
+            const updated = [...prev];
+            updated[0] = true;
+            return updated;
+        });
+        setCurrentStep(1);
 
-    
-  
-      if (!response.ok) {
-        throw new Error(data.detail || "Unauthorized request.");
-      }
-  
-      if (!data.message) {
-        throw new Error("Missing 'message' in API response");
-      }
-  
-      const jsonStart = data.message.indexOf("[");
-      const jsonEnd = data.message.lastIndexOf("]") + 1;
-      const jsonString = data.message.slice(jsonStart, jsonEnd);
-  
-      // Map difficulty levels here
-      const parsedQuestions = JSON.parse(jsonString).map((q, index) => {
-        const optionsArray = Object.entries(q.options).map(([text, correctness], i) => ({
-          id: String.fromCharCode(65 + i),
-          text,
-          isCorrect: correctness === "TRUE"
-        }));
-  
-        // Map the difficulty level (assuming it is numeric)
-        const difficultyLevel = (q.difficulty_level);  // Map numeric value to string
-  
-        return {
-          ...q,
-          question_id: uuidv4(),
-          question_type: "CODE_ANALYSIS_MULTIPLE_CHOICE",
-          short_text: `${formData.subject} Question ${index + 1}`,
-          question_key: index,
-          content_type: "HTML",
-          tag_names: [
-            "POOL_1",
-            `TOPIC_${formData.topic.toUpperCase().replace(/\s+/g, "_")}_CODING_ANALYSIS`,
-            `SUB_TOPIC_CODING_ANALYSIS`,
-            `DIFFICULTY_${formData.difficulty.toUpperCase()}`,
-            "SOURCE_GPT",
-            "IN_OFFLINE_EXAM",
-            "COMPANY_UNKNOWN"
-          ],
-          code_data: q.code_data,
-          code_language: formData.subject.toUpperCase(),
-          explanation: q.answer_explanation_content,
-          explanation_content_type: "MARKDOWN",
-          toughness: formData.difficulty.toUpperCase(),
-          options: optionsArray,
-          difficulty_level: difficultyLevel,  // Set mapped difficulty level
-        };
-      });
-  
-      setGeneratedQuestions(prev => [...prev, ...parsedQuestions]);
+        // Fetch questions from the content generation API
+        const response = await fetch("https://ravik00111110.pythonanywhere.com/api/content-gen/generate/", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                prompt: formData.prompt,
+                difficulty: formData.difficulty.toLowerCase(),
+                question_type: "MCQ",
+                topic: formData.subject.toUpperCase(),
+                subtopic: formData.topic.toUpperCase(),
+                number_of_question: formData.numQuestions
+            })
+        });
+
+        // Step 2: Start generating question templates
+        setStepsCompleted(prev => {
+            const updated = [...prev];
+            updated[1] = true;
+            return updated;
+        });
+        setCurrentStep(2);
+
+        // Parse response data
+        const data = await response.json();
+        console.log("📦 Response status:", response.status);
+        console.log("📨 Raw response data:", data);
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Unauthorized request.");
+        }
+
+        if (!data.message) {
+            throw new Error("Missing 'message' in API response");
+        }
+
+        const jsonStart = data.message.indexOf("[");
+        const jsonEnd = data.message.lastIndexOf("]") + 1;
+        const jsonString = data.message.slice(jsonStart, jsonEnd);
+
+        // Step 3: Start creating code snippets
+        setStepsCompleted(prev => {
+            const updated = [...prev];
+            updated[2] = true;
+            return updated;
+        });
+        setCurrentStep(3);
+
+        // Parse the questions and format them for display
+        const parsedQuestions = JSON.parse(jsonString).map((q, index) => {
+            const optionsArray = Object.entries(q.options).map(([text, correctness], i) => ({
+                id: String.fromCharCode(65 + i),
+                text,
+                isCorrect: correctness === "TRUE"
+            }));
+
+            const subtopic = q.subtopic || "UNKNOWN";  // Ensure subtopic is correctly set or default to "UNKNOWN"
+
+            const subtopicTag = `SUB_TOPIC_${formData.topic.toUpperCase().replace(/\s+/g, "_")}_CODING_ANALYSIS`;
+            const difficultyLevel = q.difficulty_level; // Map difficulty level to string
+
+            return {
+                ...q,
+                question_id: uuidv4(),
+                question_type: "CODE_ANALYSIS_MULTIPLE_CHOICE",
+                short_text: `${formData.subject} Question ${index + 1}`,
+                question_key: index,
+                content_type: "HTML",
+                tag_names: [
+                    "POOL_1",
+                    `TOPIC_${formData.topic.toUpperCase().replace(/\s+/g, "_")}_CODING_ANALYSIS`,
+                    subtopicTag,
+                    `DIFFICULTY_${formData.difficulty.toUpperCase()}`,
+                    "SOURCE_GPT",
+                    "IN_OFFLINE_EXAM",
+                    "COMPANY_UNKNOWN"
+                ],
+                code_data: q.code_data,
+                code_language: formData.subject.toUpperCase(),
+                explanation: q.answer_explanation_content,
+                explanation_content_type: "MARKDOWN",
+                toughness: formData.difficulty.toUpperCase(),
+                topicTag: formData.topicTag,
+                subtopicTag,
+                options: optionsArray,
+                difficulty_level: difficultyLevel,
+            };
+        });
+
+        // Step 4: Formulating options
+        setStepsCompleted(prev => {
+            const updated = [...prev];
+            updated[3] = true;
+            return updated;
+        });
+        setCurrentStep(4);
+
+        // Set generated questions to the state
+        setGeneratedQuestions(prev => [...prev, ...parsedQuestions]);
+
+        // Step 5: Finalizing questions
+        setStepsCompleted(prev => {
+            const updated = [...prev];
+            updated[4] = true;
+            return updated;
+        });
+        setCurrentStep(5);
+
     } catch (err) {
-      console.error("❌ Generation error:", err);
-      toast({
-        title: "Generation Failed",
-        description: err instanceof Error ? err.message : "Unknown error.",
-        variant: "destructive"
-      });
+        console.error("❌ Generation error:", err);
+        toast({
+            title: "Generation Failed",
+            description: err instanceof Error ? err.message : "Unknown error.",
+            variant: "destructive"
+        });
     } finally {
-      setIsGenerating(false);
+        setIsGenerating(false);
     }
-  };
+};
+
+
+
   
   
   
@@ -364,39 +523,7 @@ const GenerateMCQs = () => {
     }
   };
 
-  const handleDownloadSheet = () => {
-    // Create CSV content with all required headers
-    const headers = [
-      'question_id', 'question_type', 'short_text', 'question_text', 'question_key',
-      'content_type', 'multimedia_count', 'multimedia_format', 'multimedia_url',
-      'thumbnail_url', 'tag_names', 'c_options', 'w_options', 'options_content_type',
-      'code_data', 'code_language', 'explanation', 'explanation_content_type', 'toughness'
-    ];
 
-    const csvContent = [
-      headers.join(','),
-      ...generatedQuestions.map(q => headers.map(h => {
-        const value = q[h];
-        return typeof value === 'string' ? `"${value}"` : value;
-      }).join(','))
-    ].join('\n');
-
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'generated_questions.csv';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    toast({
-      title: "Download Started",
-      description: "Your questions have been downloaded as a CSV file",
-    });
-  };
 
   const handleAnswerSelect = (questionId: string, optionId: string) => {
     setSelectedAnswers(prev => ({ ...prev, [questionId]: optionId }));
@@ -891,244 +1018,255 @@ const updateStepProgress = (step: number) => {
           </Dialog>
 
           <AnimatePresence>
-            {generatedQuestions.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 neon-card"
-              >
-                                          <div className="flex justify-between items-center mb-6">
-                            <div>
-                              <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-                                Generated Questions
-                              </h2>
-                              <div className="mt-1 space-x-2 text-sm">
-                                {(() => {
-                                  const { EASY, MEDIUM, HARD, TOTAL } = getDifficultyCounts();
-                                  return (
-                                    <>
-                                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
-                                        Easy: {EASY}
-                                      </span>
-                                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                                        Medium: {MEDIUM}
-                                      </span>
-                                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
-                                        Hard: {HARD}
-                                      </span>
-
-                                      <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded">
-                                          Total: {TOTAL}
-                                      </span>
-
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-
-                              <Button
-                                onClick={handleDownloadSheet}
-                                className="bg-green-500 hover:bg-green-600 text-white"
-                              >
-                                <Download className="mr-2 h-4 w-4" />
-                                Download Google Sheet
-                              </Button>
-                            </div>
-
-
-                            <div className="space-y-6">
-  {generatedQuestions.map((question, index) => {
-    console.log("Question Difficulty Level: ", question.difficulty_level); // Debugging line
-    
-    return (
-      <motion.div
-        key={question.question_id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-      >
-        <Card className="p-6 bg-slate-50 dark:bg-slate-700/50 hover:shadow-lg transition-shadow duration-300">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="font-medium text-slate-800 dark:text-white">
-                Question {index + 1}
-              </h3>
-
-              {/* Difficulty Level Display */}
-              {question.difficulty_level && (
-                <span
-                  className="inline-block px-2 py-0.5 mt-1 rounded-full text-xs font-semibold"
-                  style={{
-                    backgroundColor:
-                      question.difficulty_level === "EASY"
-                        ? "#d1fae5" // green bg
-                        : question.difficulty_level === "MEDIUM"
-                        ? "#fef3c7" // yellow bg
-                        : "#fee2e2", // red bg
-                    color:
-                      question.difficulty_level === "EASY"
-                        ? "#065f46" // green text
-                        : question.difficulty_level === "MEDIUM"
-                        ? "#92400e" // yellow text
-                        : "#991b1b" // red text
-                  }}
-                >
-                  {question.difficulty_level} {/* Display the difficulty */}
+          {generatedQuestions.length > 0 && (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 neon-card"
+  >
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
+          Generated Questions
+        </h2>
+        <div className="mt-1 space-x-2 text-sm">
+          {(() => {
+            const { EASY, MEDIUM, HARD, TOTAL } = getDifficultyCounts();
+            return (
+              <>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                  Easy: {EASY}
                 </span>
-              )}
+                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                  Medium: {MEDIUM}
+                </span>
+                <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                  Hard: {HARD}
+                </span>
 
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {question.short_text}
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                ID: {question.question_id}
-              </p>
-            </div>
+                <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded">
+                    Total: {TOTAL}
+                </span>
+              </>
+            );
+          })()}
+        </div>
+      </div>
 
-            <div className="flex space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEditQuestion(question)}
-                className="hover-scale"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCopyQuestion(question.question_id)}
-                className="hover-scale"
-              >
-                {copiedQuestionId === question.question_id ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteQuestion(question.question_id)}
-                className="hover-scale"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+      <Button
+        onClick={handleDownloadJSON}
+        className="neon-button bg-green-500 hover:bg-green-600 text-white"
+      >
+        <Download className="mr-2 h-4 w-4" />
+        Download JSON 
+      </Button>
+    </div>
 
-          <div className="prose dark:prose-invert max-w-none">
-            <p className="text-slate-800 dark:text-slate-200">
-              {question.question_text}
-            </p>
-            {question.code_data && (
-              <div className="relative">
-                <pre className="bg-slate-100 dark:bg-slate-600 p-4 rounded-lg mt-2 overflow-x-auto">
-                  <code className="language-python">
-                    {highlightCode(question.code_data)}
-                  </code>
-                </pre>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopyCode(question.code_data)}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+    <div className="space-y-6">
+      {generatedQuestions.map((question, index) => {
+        console.log("Question Difficulty Level: ", question.difficulty_level); // Debugging line
+        console.log("Question data:", question);
+        
+        const subtopicTag = question.subtopicTag || "SUB_TOPIC_UNKNOWN_CODING_ANALYSIS"; // Use default if missing
+        const topicTag = question.topicTag || "DEFAULT_TOPIC_TAG"; // Ensure the TopicTag is available
+        
+        return (
+          <motion.div
+            key={question.question_id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="p-6 bg-slate-50 dark:bg-slate-700/50 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="font-medium text-slate-800 dark:text-white">
+                    Question {index + 1}
+                  </h3>
+
+                  {/* Difficulty Level Display */}
+                  {question.difficulty_level && (
+                    <span
+                      className="inline-block px-2 py-0.5 mt-1 rounded-full text-xs font-semibold"
+                      style={{
+                        backgroundColor:
+                          question.difficulty_level === "EASY"
+                            ? "#d1fae5" // green bg
+                            : question.difficulty_level === "MEDIUM"
+                            ? "#fef3c7" // yellow bg
+                            : "#fee2e2", // red bg
+                        color:
+                          question.difficulty_level === "EASY"
+                            ? "#065f46" // green text
+                            : question.difficulty_level === "MEDIUM"
+                            ? "#92400e" // yellow text
+                            : "#991b1b" // red text
+                      }}
+                    >
+                      {question.difficulty_level} {/* Display the difficulty */}
+                    </span>
+                  )}
+
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {question.short_text}
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    ID: {question.question_id}
+                  </p>
+
+                  {/* Display Topic Tag */}
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    Topic Tag: {topicTag || "DEFAULT_TOPIC_TAG"}
+                  </p>
+
+                  {/* Display Subtopic Tag */}
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    Subtopic Tag: {subtopicTag || "SUB_TOPIC_UNKNOWN_CODING_ANALYSIS"}
+                  </p>
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditQuestion(question)}
+                    className="hover-scale"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyQuestion(question.question_id)}
+                    className="hover-scale"
+                  >
+                    {copiedQuestionId === question.question_id ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteQuestion(question.question_id)}
+                    className="hover-scale"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className="mt-6">
-            <RadioGroup
-              value={selectedAnswers[question.question_id]}
-              onValueChange={(value) => handleAnswerSelect(question.question_id, value)}
-              className="space-y-2"
-            >
-              {question.options.map((option: any) => (
-                <motion.div
-                  key={option.id}
-                  className={cn(
-                    "flex items-center space-x-2 p-3 rounded-lg transition-colors",
-                    getOptionColor(question.question_id, option.id)
-                  )}
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-slate-800 dark:text-slate-200">
+                  {question.question_text}
+                </p>
+                {question.code_data && (
+                  <div className="relative">
+                    <pre className="bg-slate-100 dark:bg-slate-600 p-4 rounded-lg mt-2 overflow-x-auto">
+                      <code className="language-python">
+                        {highlightCode(question.code_data)}
+                      </code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopyCode(question.code_data)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <RadioGroup
+                  value={selectedAnswers[question.question_id]}
+                  onValueChange={(value) => handleAnswerSelect(question.question_id, value)}
+                  className="space-y-2"
                 >
-                  {editingOption?.questionId === question.question_id && 
-                   editingOption?.optionId === option.id ? (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <Input
-                        value={optionEditText}
-                        onChange={(e) => setOptionEditText(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={handleSaveOption}
-                        className="bg-green-500 hover:bg-green-600"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingOption(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <RadioGroupItem 
-                        value={option.id} 
-                        id={`${question.question_id}-${option.id}`} 
-                      />
-                      <Label 
-                        htmlFor={`${question.question_id}-${option.id}`} 
-                        className="cursor-pointer flex-1"
-                      >
-                        {option.text}
-                      </Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditOption(question.question_id, option.id, option.text)}
-                        className="opacity-100"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                  {question.options.map((option: any) => (
+                    <motion.div
+                      key={option.id}
+                      className={cn(
+                        "flex items-center space-x-2 p-3 rounded-lg transition-colors",
+                        getOptionColor(question.question_id, option.id)
+                      )}
+                    >
+                      {editingOption?.questionId === question.question_id && 
+                       editingOption?.optionId === option.id ? (
+                        <div className="flex-1 flex items-center space-x-2">
+                          <Input
+                            value={optionEditText}
+                            onChange={(e) => setOptionEditText(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleSaveOption}
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingOption(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <RadioGroupItem 
+                            value={option.id} 
+                            id={`${question.question_id}-${option.id}`} 
+                          />
+                          <Label 
+                            htmlFor={`${question.question_id}-${option.id}`} 
+                            className="cursor-pointer flex-1"
+                          >
+                            {option.text}
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditOption(question.question_id, option.id, option.text)}
+                            className="opacity-100"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </motion.div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {showAnswers[question.question_id] && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3 }}
+                  className="mt-4 p-4 bg-slate-100 dark:bg-slate-600 rounded-lg"
+                >
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Explanation
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {question.explanation}
+                  </p>
                 </motion.div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          {showAnswers[question.question_id] && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              transition={{ duration: 0.3 }}
-              className="mt-4 p-4 bg-slate-100 dark:bg-slate-600 rounded-lg"
-            >
-              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Explanation
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {question.explanation}
-              </p>
-            </motion.div>
-          )}
-        </Card>
-      </motion.div>
-    );
-  })}
-</div>
-
-              </motion.div>
-            )}
+              )}
+            </Card>
+          </motion.div>
+        );
+      })}
+    </div>
+  </motion.div>
+)}
           </AnimatePresence>
         </motion.div>
       )}

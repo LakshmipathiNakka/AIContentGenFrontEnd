@@ -9,8 +9,6 @@ import { Moon, Sun } from 'lucide-react';
 const Settings = () => {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState({
-    azureOpenAIEndpoint: '',
-    azureApiKey: '',
     googleSheetId: '',
     googleKeyfilePath: '',
     animationsEnabled: true,
@@ -19,12 +17,10 @@ const Settings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load settings from localStorage only once when component mounts
+  // Load settings from localStorage when component mounts
   useEffect(() => {
     const loadSettings = () => {
       const savedSettings = {
-        azureOpenAIEndpoint: localStorage.getItem('azureOpenAIEndpoint') || '',
-        azureApiKey: localStorage.getItem('azureApiKey') || '',
         googleSheetId: localStorage.getItem('googleSheetId') || '',
         googleKeyfilePath: localStorage.getItem('googleKeyfilePath') || '',
         animationsEnabled: localStorage.getItem('animationsEnabled') !== 'false',
@@ -38,7 +34,7 @@ const Settings = () => {
   const handleSave = () => {
     setIsSaving(true);
     
-    // Save all settings to localStorage
+    // Save settings to localStorage
     Object.entries(settings).forEach(([key, value]) => {
       localStorage.setItem(key, value.toString());
     });
@@ -55,8 +51,6 @@ const Settings = () => {
   
   const handleReset = () => {
     const defaultSettings = {
-      azureOpenAIEndpoint: '',
-      azureApiKey: '',
       googleSheetId: '',
       googleKeyfilePath: '',
       animationsEnabled: true,
@@ -136,32 +130,6 @@ const Settings = () => {
       </div>
       
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 neon-card mb-8 transition-all duration-300 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Azure OpenAI Configuration</h2>
-        
-        <div className="mb-4">
-          <label className="block text-slate-700 dark:text-slate-300 mb-2">Azure OpenAI Endpoint</label>
-          <input 
-            type="text" 
-            value={settings.azureOpenAIEndpoint}
-            onChange={(e) => setSettings({...settings, azureOpenAIEndpoint: e.target.value})}
-            placeholder="Enter Azure OpenAI Endpoint URL"
-            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md interactive-input bg-white dark:bg-slate-700 text-slate-800 dark:text-white"
-          />
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-slate-700 dark:text-slate-300 mb-2">Azure API Key</label>
-          <input 
-            type="password" 
-            value={settings.azureApiKey}
-            onChange={(e) => setSettings({...settings, azureApiKey: e.target.value})}
-            placeholder="Enter Azure API Key"
-            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md interactive-input bg-white dark:bg-slate-700 text-slate-800 dark:text-white"
-          />
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 neon-card mb-8 transition-all duration-300 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Google Sheets Configuration</h2>
         
         <div className="mb-4">
@@ -187,7 +155,7 @@ const Settings = () => {
         </div>
       </div>
       
-      <div className="flex space-x-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+      <div className="flex space-x-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         <Button 
           onClick={handleSave} 
           disabled={isSaving}

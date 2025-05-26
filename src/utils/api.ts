@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "./auth";
 
+// Function to fetch prompt from API
 export const fetchPromptFromAPI = async (processName: string) => {
   try {
     const headers = await getAuthHeaders();
@@ -14,7 +15,7 @@ export const fetchPromptFromAPI = async (processName: string) => {
     const data = await response.json();
     console.log("🔑 Prompt:", data.prompt);
     return data.prompt;
-    
+
   } catch (err) {
     console.error("Error fetching prompt:", err);
     return null;
